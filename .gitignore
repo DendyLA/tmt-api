@@ -1,0 +1,99 @@
+# =====================
+# Dependencies
+# =====================
+node_modules/
+
+# =====================
+# Builds / outputs
+# =====================
+dist/
+build/
+.next/
+out/
+coverage/
+.nyc_output/
+
+# =====================
+# Logs
+# =====================
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+lerna-debug.log*
+
+# =====================
+# Environment variables
+# =====================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# =====================
+# OS files
+# =====================
+.DS_Store
+Thumbs.db
+
+# =====================
+# IDE / editors
+# =====================
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+
+# =====================
+# Optional VSCode (если в команде)
+# (если один работаешь — лучше игнорить полностью)
+# =====================
+# .vscode/
+
+# =====================
+# Cache / temp
+# =====================
+.temp/
+.tmp/
+.cache/
+.parcel-cache/
+.eslintcache
+.swc/
+.turbo/
+
+# =====================
+# Runtime data
+# =====================
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# =====================
+# Testing
+# =====================
+coverage/
+
+# =====================
+# TypeScript / build artifacts
+# =====================
+*.tsbuildinfo
+
+# =====================
+# Diagnostic reports
+# =====================
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# =====================
+# Docker (если используешь)
+# =====================
+.docker/
+
+# =====================
+# Prisma (если используешь)
+# =====================
+prisma/dev.db
+prisma/*.db-journal
+/src/generated/prisma
