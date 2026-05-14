@@ -54,23 +54,25 @@ model RolePermission {
 }
 
 model Vacancy {
-  id String @id @default(uuid())
+    id String @id @default(uuid())
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
+    userId String
+    user   User @relation(fields: [userId], references: [id])
 
-  title        String
-  description  String
-  requirements String
-  location     String
-  contactEmail String
+    title        String
+    description  String
+    requirements String
+    location     String
+    contactEmail String
 
-  salary String?
+    salary String?
 
-  status VacancyStatus @default(PENDING)
+    status VacancyStatus @default(PENDING)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    deletedAt DateTime? // 👈 SOFT DELETE
 }
 
 enum VacancyStatus {
@@ -79,4 +81,22 @@ enum VacancyStatus {
     APPROVED
     REJECTED
     ARCHIVED
+}
+
+model ActivityLog {
+    id          String   @id @default(uuid())
+
+    companyId   String?
+    userId      String?
+
+    action      String   // "VACANCY_CREATED", "VACANCY_APPROVED"
+    entityType  String   // "vacancy"
+    entityId    String
+
+    metadata    Json?
+
+    ipAddress   String?
+    userAgent   String?
+
+    createdAt   DateTime @default(now())
 }
