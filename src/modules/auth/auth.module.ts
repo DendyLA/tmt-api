@@ -7,6 +7,8 @@ import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt/jwt.service';
 import { DatabaseModule } from '../../database/database.module';
 import { VacancyOwnershipGuard } from './guards/ownership/vacancy-ownership.guard';
+import { PermissionsGuard } from './guards/permissions/permissions.guard';
+import { PermissionResolverService } from './services/permission-resolver.service';
 
 @Module({
     imports: [
@@ -20,7 +22,18 @@ import { VacancyOwnershipGuard } from './guards/ownership/vacancy-ownership.guar
         }),
     ],
     controllers: [AuthController],
-    providers: [AuthService, JwtStrategy, VacancyOwnershipGuard],
-    exports: [JwtStrategy, VacancyOwnershipGuard],
+    providers: [
+        AuthService,
+        JwtStrategy,
+        VacancyOwnershipGuard,
+        PermissionsGuard,
+        PermissionResolverService,
+    ],
+    exports: [
+        JwtStrategy,
+        VacancyOwnershipGuard,
+        PermissionsGuard,
+        PermissionResolverService,
+    ],
 })
 export class AuthModule {}

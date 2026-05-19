@@ -22,11 +22,22 @@ export class UsersService {
 
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
+        const userRole = await this.prisma.role.findUnique({
+            where: { name: 'user' },
+        });
+
+        if (!userRole) {
+            throw new BadRequestException(
+                'Default role not found. Run seeds first.',
+            );
+        }
+
         return this.prisma.user.create({
             data: {
                 name: dto.name,
                 email: dto.email,
                 password: hashedPassword,
+                roleId: userRole.id,
             },
         });
     }

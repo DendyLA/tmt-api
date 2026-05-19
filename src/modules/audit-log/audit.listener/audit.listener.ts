@@ -46,4 +46,31 @@ export class AuditListener {
             userAgent: payload.req?.headers?.['user-agent'],
         });
     }
+
+    @OnEvent('vacancy.restored')
+    async handleRestored(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            action: 'VACANCY_RESTORED',
+            entityType: 'vacancy',
+            entityId: payload.vacancy.id,
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('vacancy.rollback')
+    async handleRollback(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            action: 'VACANCY_ROLLBACK',
+            entityType: 'vacancy',
+            entityId: payload.version.vacancyId,
+            metadata: {
+                versionId: payload.version.id,
+            },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
 }

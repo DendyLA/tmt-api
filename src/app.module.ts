@@ -10,9 +10,9 @@ import { AuthModule } from './modules/auth/auth.module';
 
 import { JwtAuthGuard } from './modules/auth/guards/jwt/jwt.guard';
 import { RolesGuard } from './modules/auth/guards/roles/roles.guard';
+import { PermissionsGuard } from './modules/auth/guards/permissions/permissions.guard';
+
 import { VacanciesModule } from './modules/vacancies/vacancies.module';
-import { VacanciesService } from './modules/vacancies/vacancies.service';
-import { VacanciesController } from './modules/vacancies/vacancies.controller';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AuditLogMiddleware } from './common/middleware/audit-log/audit-log.middleware';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -27,7 +27,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         AuditLogModule,
         EventEmitterModule.forRoot(),
     ],
-    controllers: [AppController, VacanciesController],
+    controllers: [AppController],
     providers: [
         AppService,
 
@@ -39,7 +39,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
             provide: APP_GUARD,
             useClass: RolesGuard,
         },
-        VacanciesService,
+        {
+            provide: APP_GUARD,
+            useClass: PermissionsGuard,
+        },
     ],
 })
 export class AppModule {

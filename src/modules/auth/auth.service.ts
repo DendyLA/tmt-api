@@ -9,6 +9,19 @@ import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
+type UserWithRolePermissions = {
+    id: string;
+    email: string;
+    role: {
+        name: string;
+        permissions: {
+            permission: {
+                key: string;
+            };
+        }[];
+    } | null;
+};
+
 @Injectable()
 export class AuthService {
     constructor(
@@ -43,7 +56,15 @@ export class AuthService {
                 roleId: userRole.id,
             },
             include: {
-                role: true,
+                role: {
+                    include: {
+                        permissions: {
+                            include: {
+                                permission: true,
+                            },
+                        },
+                    },
+                },
             },
         });
 
@@ -54,29 +75,36 @@ export class AuthService {
         const user = await this.prisma.user.findUnique({
             where: { email: dto.email },
             include: {
-                role: true,
+                role: {
+                    include: {
+                        permissions: {
+                            include: {
+                                permission: true,
+                            },
+                        },
+                    },
+                },
             },
         });
 
-        if (!user) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
-
+        if (!user) throw new UnauthorizedException('Invalid credentials');
         const isValid = await bcrypt.compare(dto.password, user.password);
-
-        if (!isValid) {
-            throw new UnauthorizedException('Invalid credentials');
-        }
+        if (!isValid) throw new UnauthorizedException('Invalid credentials');
+        if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
         return this.signToken(user);
     }
 
-    private signToken(user: any) {
+    private signToken(user: UserWithRolePermissions) {
+        const permissions =
+            user.role?.permissions.map((item) => item.permission.key) ?? [];
+
         return {
             access_token: this.jwt.sign({
                 sub: user.id,
                 email: user.email,
-                role: user.role.name,
+                role: user.role?.name ?? null,
+                permissions,
             }),
         };
     }

@@ -47,10 +47,23 @@ export class VacancyModerationService {
         return updated;
     }
 
-    async archive(id: string) {
-        return this.prisma.vacancy.update({
+    async archive(id: string, user: any, req?: any) {
+        const updated = await this.prisma.vacancy.update({
             where: { id },
-            data: { status: VacancyStatus.ARCHIVED },
+            data: {
+                status: VacancyStatus.ARCHIVED,
+            },
         });
+
+        await this.audit.log({
+            userId: user.sub,
+            action: 'VACANCY_ARCHIVED',
+            entityType: 'vacancy',
+            entityId: id,
+            ipAddress: req?.ip,
+            userAgent: req?.headers?.['user-agent'],
+        });
+
+        return updated;
     }
 }

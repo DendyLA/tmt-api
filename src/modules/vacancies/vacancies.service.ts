@@ -4,7 +4,7 @@ import {
     ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
-import { CreateVacancyDto } from './dto/create-vacancy.dto';
+import { CreateVacancyDto } from './dto/create-vacancy.dto/create-vacancy.dto';
 import { UpdateVacancyDto } from './dto/update-vacancy.dto/update-vacancy.dto';
 import { Prisma, VacancyStatus } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -17,15 +17,21 @@ export class VacanciesService {
     ) {}
 
     private buildVacancyFilter(user?: any): Prisma.VacancyWhereInput {
+        const baseFilter = { deletedAt: null };
+
         if (!user) {
-            return { status: VacancyStatus.APPROVED };
+            return {
+                ...baseFilter,
+                status: VacancyStatus.APPROVED,
+            };
         }
 
         if (['admin', 'superadmin'].includes(user.role)) {
-            return {};
+            return baseFilter;
         }
 
         return {
+            ...baseFilter,
             OR: [{ status: VacancyStatus.APPROVED }, { userId: user.sub }],
         };
     }
@@ -91,6 +97,24 @@ export class VacanciesService {
             throw new ForbiddenException('Not allowed');
         }
 
+        // 🔥 считаем версию
+        const lastVersion = await this.prisma.vacancyVersion.findFirst({
+            where: { vacancyId: id },
+            orderBy: { version: 'desc' },
+        });
+
+        const nextVersion = (lastVersion?.version || 0) + 1;
+
+        // 🔥 сохраняем старую версию
+        await this.prisma.vacancyVersion.create({
+            data: {
+                vacancyId: id,
+                data: vacancy as any,
+                version: nextVersion,
+                createdBy: user.sub,
+            },
+        });
+
         const updated = await this.prisma.vacancy.update({
             where: { id },
             data: dto,
@@ -104,6 +128,68 @@ export class VacanciesService {
         });
 
         return updated;
+    }
+
+    async getVersions(id: string) {
+        return this.prisma.vacancyVersion.findMany({
+            where: { vacancyId: id },
+            orderBy: { version: 'desc' },
+        });
+    }
+
+    async rollback(id: string, versionId: string, user: any, req?: any) {
+        const version = await this.prisma.vacancyVersion.findUnique({
+            where: { id: versionId },
+        });
+
+        if (!version) {
+            throw new NotFoundException('Version not found');
+        }
+
+        const updated = await this.prisma.vacancy.update({
+            where: { id },
+            data: version.data as any,
+        });
+
+        this.eventEmitter.emit('vacancy.rollback', {
+            user,
+            version,
+            req,
+        });
+
+        return updated;
+    }
+
+    async restore(id: string, user: any, req?: any) {
+        const vacancy = await this.prisma.vacancy.findUnique({
+            where: { id },
+        });
+
+        if (!vacancy || !vacancy.deletedAt) {
+            throw new NotFoundException('Vacancy not found or not deleted');
+        }
+
+        if (
+            !['admin', 'superadmin'].includes(user.role) &&
+            vacancy.userId !== user.sub
+        ) {
+            throw new ForbiddenException('Not allowed');
+        }
+
+        const restored = await this.prisma.vacancy.update({
+            where: { id },
+            data: {
+                deletedAt: null,
+            },
+        });
+
+        this.eventEmitter.emit('vacancy.restored', {
+            user,
+            vacancy: restored,
+            req,
+        });
+
+        return restored;
     }
 
     async remove(id: string, user: any, req?: any) {
@@ -122,13 +208,16 @@ export class VacanciesService {
             throw new ForbiddenException('Not allowed');
         }
 
-        await this.prisma.vacancy.delete({
+        const updated = await this.prisma.vacancy.update({
             where: { id },
+            data: {
+                deletedAt: new Date(),
+            },
         });
 
         this.eventEmitter.emit('vacancy.deleted', {
             user,
-            vacancy,
+            vacancy: updated,
             req,
         });
 
