@@ -69,6 +69,22 @@ async function main() {
                 permissionId: permissionByKey[PERMISSIONS.VACANCY.MANAGE].id,
             },
             {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.COMPANY.CREATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.COMPANY.UPDATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.COMPANY.DELETE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.COMPANY.MANAGE].id,
+            },
+            {
                 roleId: user.id,
                 permissionId: permissionByKey[PERMISSIONS.VACANCY.CREATE].id,
             },

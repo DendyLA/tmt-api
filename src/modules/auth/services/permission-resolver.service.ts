@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { AuthenticatedUser } from '../types/authenticated-user.type';
 import { PermissionKey } from '../constants/permissions.constants';
+import { PermissionContext } from '../types/permission-context.type';
 
 @Injectable()
 export class PermissionResolverService {
@@ -10,7 +11,10 @@ export class PermissionResolverService {
     async hasAll(
         user: AuthenticatedUser | null | undefined,
         requiredPermissions: readonly PermissionKey[],
+        context?: PermissionContext,
     ): Promise<boolean> {
+        void context;
+
         if (!requiredPermissions.length) return true;
         if (!user?.sub) return false;
 
@@ -24,7 +28,10 @@ export class PermissionResolverService {
     async hasAny(
         user: AuthenticatedUser | null | undefined,
         requiredPermissions: readonly PermissionKey[],
+        context?: PermissionContext,
     ): Promise<boolean> {
+        void context;
+
         if (!requiredPermissions.length) return true;
         if (!user?.sub) return false;
 
@@ -38,8 +45,9 @@ export class PermissionResolverService {
     async hasOne(
         user: AuthenticatedUser | null | undefined,
         permission: PermissionKey,
+        context?: PermissionContext,
     ): Promise<boolean> {
-        return this.hasAny(user, [permission]);
+        return this.hasAny(user, [permission], context);
     }
 
     private async resolveUserPermissions(

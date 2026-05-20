@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './modules/auth/guards/jwt/jwt.guard';
 import { PermissionsGuard } from './modules/auth/guards/permissions/permissions.guard';
 
 import { VacanciesModule } from './modules/vacancies/vacancies.module';
+import { CompaniesModule } from './modules/companies/companies.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AuditLogMiddleware } from './common/middleware/audit-log/audit-log.middleware';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -23,6 +24,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         AuthModule,
         ConfigModule.forRoot({ isGlobal: true }),
         VacanciesModule,
+        CompaniesModule,
         AuditLogModule,
         EventEmitterModule.forRoot(),
     ],

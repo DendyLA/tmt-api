@@ -23,14 +23,16 @@ model User {
 
   createdAt DateTime @default(now())
 
-  vacancies Vacancy[]
+  vacancies          Vacancy[]
+  companyMemberships CompanyMember[]
 }
 
 model Role {
   id   String @id @default(uuid())
   name String @unique
 
-  users User[]
+  users          User[]
+  companyMembers CompanyMember[]
 
   permissions RolePermission[]
 }
@@ -54,66 +56,165 @@ model RolePermission {
 }
 
 model Vacancy {
-    id String @id @default(uuid())
+  id String @id @default(uuid())
 
-    userId String
-    user   User @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-    title        String
-    description  String
-    requirements String
-    location     String
-    contactEmail String
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
 
-    salary String?
+  title        String
+  description  String
+  requirements String
+  location     String
+  contactEmail String
 
-    status VacancyStatus @default(PENDING)
+  salary String?
 
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  status VacancyStatus @default(PENDING)
 
-    deletedAt DateTime? 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-	versions VacancyVersion[]
+  deletedAt DateTime?
+
+  versions VacancyVersion[]
+}
+
+model Company {
+  id String @id @default(uuid())
+
+  name        String
+  slug        String  @unique
+  description String?
+  logo        String?
+  website     String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  members   CompanyMember[]
+  vacancies Vacancy[]
+
+  contact     CompanyContact?
+  socialLinks CompanySocialLink[]
+  projects    Project[]
+}
+
+model CompanyMember {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  isOwner  Boolean  @default(false)
+  joinedAt DateTime @default(now())
+
+  @@unique([companyId, userId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model CompanyContact {
+  id String @id @default(uuid())
+
+  companyId String  @unique
+  company   Company @relation(fields: [companyId], references: [id])
+
+  email    String?
+  phone    String?
+  address  String?
+  location String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompanySocialLink {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  platform String
+  url      String
+  username String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([companyId])
+}
+
+model Project {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  title       String
+  description String
+  status      ProjectStatus @default(DRAFT)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([companyId])
+  @@index([status])
 }
 
 enum VacancyStatus {
-    DRAFT
-    PENDING
-    APPROVED
-    REJECTED
-    ARCHIVED
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
 }
 
+enum ProjectStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
 
 model VacancyVersion {
-    id String @id @default(uuid())
+  id String @id @default(uuid())
 
-    vacancyId String
-    vacancy   Vacancy @relation(fields: [vacancyId], references: [id])
+  vacancyId String
+  vacancy   Vacancy @relation(fields: [vacancyId], references: [id])
 
-    data Json 
+  data Json
 
-    version Int
+  version Int
 
-    createdBy String
-    createdAt DateTime @default(now())
+  createdBy String
+  createdAt DateTime @default(now())
 }
 
 model ActivityLog {
-    id          String   @id @default(uuid())
+  id String @id @default(uuid())
 
-    companyId   String?
-    userId      String?
+  companyId String?
+  userId    String?
 
-    action      String   
-    entityType  String  
-    entityId    String
+  action     String
+  entityType String
+  entityId   String
 
-    metadata    Json?
+  metadata Json?
 
-    ipAddress   String?
-    userAgent   String?
+  ipAddress String?
+  userAgent String?
 
-    createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }

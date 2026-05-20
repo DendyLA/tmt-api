@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
+/**
+ * @deprecated Use @Permissions() with PermissionsGuard instead.
+ * Roles should remain permission groups, not authorization checks.
+ */
 @Injectable()
 export class RolesGuard implements CanActivate {
     constructor(private reflector: Reflector) {}

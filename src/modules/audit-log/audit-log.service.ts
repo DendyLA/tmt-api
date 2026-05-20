@@ -6,6 +6,7 @@ export class AuditLogService {
     constructor(private prisma: PrismaService) {}
 
     async log(data: {
+        companyId?: string;
         userId?: string;
         action: string;
         entityType: string;
@@ -16,6 +17,7 @@ export class AuditLogService {
     }) {
         return this.prisma.activityLog.create({
             data: {
+                companyId: data.companyId,
                 userId: data.userId,
                 action: data.action,
                 entityType: data.entityType,

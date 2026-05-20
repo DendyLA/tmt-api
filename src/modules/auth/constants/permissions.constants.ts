@@ -10,6 +10,15 @@ export const PERMISSIONS = {
         ROLLBACK: 'vacancy.rollback',
         MANAGE: 'vacancy.manage',
     },
+    COMPANY: {
+        CREATE: 'company.create',
+        UPDATE: 'company.update',
+        DELETE: 'company.delete',
+        CONTACT_MANAGE: 'company.contact.manage',
+        SOCIAL_MANAGE: 'company.social.manage',
+        PROJECT_MANAGE: 'company.project.manage',
+        MANAGE: 'company.manage',
+    },
     USERS: {
         MANAGE: 'users.manage',
     },
@@ -25,6 +34,13 @@ export const ALL_PERMISSIONS = [
     PERMISSIONS.VACANCY.RESTORE,
     PERMISSIONS.VACANCY.ROLLBACK,
     PERMISSIONS.VACANCY.MANAGE,
+    PERMISSIONS.COMPANY.CREATE,
+    PERMISSIONS.COMPANY.UPDATE,
+    PERMISSIONS.COMPANY.DELETE,
+    PERMISSIONS.COMPANY.CONTACT_MANAGE,
+    PERMISSIONS.COMPANY.SOCIAL_MANAGE,
+    PERMISSIONS.COMPANY.PROJECT_MANAGE,
+    PERMISSIONS.COMPANY.MANAGE,
     PERMISSIONS.USERS.MANAGE,
 ] as const;
 
