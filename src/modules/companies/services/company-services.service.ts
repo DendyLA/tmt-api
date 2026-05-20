@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { PrismaService } from '../../../database/prisma/prisma.service';
 import { CreateCompanyServiceDto } from './dto/create-company-service.dto';
 import { CreateServiceCategoryDto } from './dto/create-service-category.dto';
 import { UpdateCompanyServiceDto } from './dto/update-company-service.dto';

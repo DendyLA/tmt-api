@@ -9,9 +9,9 @@ import {
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { PERMISSIONS } from '../auth/constants/permissions.constants';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Public } from '../auth/decorators/public.decorator';
+import { PERMISSIONS } from '../../auth/constants/permissions.constants';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
 import { CompanyServicesService } from './company-services.service';
 import { CreateCompanyServiceDto } from './dto/create-company-service.dto';
 import { CreateServiceCategoryDto } from './dto/create-service-category.dto';

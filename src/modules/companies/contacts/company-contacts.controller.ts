@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, Put, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { PERMISSIONS } from '../auth/constants/permissions.constants';
-import { Permissions } from '../auth/decorators/permissions.decorator';
-import { Public } from '../auth/decorators/public.decorator';
+import { PERMISSIONS } from '../../auth/constants/permissions.constants';
+import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { Public } from '../../auth/decorators/public.decorator';
 import { CompanyContactsService } from './company-contacts.service';
 import { UpsertCompanyContactDto } from './dto/upsert-company-contact.dto';
 

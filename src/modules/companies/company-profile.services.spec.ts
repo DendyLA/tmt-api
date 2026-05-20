@@ -1,8 +1,8 @@
 import { NotFoundException } from '@nestjs/common';
 import { ProjectStatus } from '@prisma/client';
-import { CompanyContactsService } from './company-contacts.service';
-import { CompanyProjectsService } from './company-projects.service';
-import { CompanySocialLinksService } from './company-social-links.service';
+import { CompanyContactsService } from './contacts/company-contacts.service';
+import { CompanyProjectsService } from './projects/company-projects.service';
+import { CompanySocialLinksService } from './social-links/company-social-links.service';
 
 describe('Company profile services', () => {
     let prisma: any;

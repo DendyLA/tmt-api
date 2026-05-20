@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { PrismaService } from '../../../database/prisma/prisma.service';
 import { UpsertCompanyContactDto } from './dto/upsert-company-contact.dto';
 
 @Injectable()
