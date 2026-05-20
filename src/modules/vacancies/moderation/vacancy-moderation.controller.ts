@@ -11,6 +11,7 @@ import { VacancyModerationService } from './vacancy-moderation.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt/jwt.guard';
 import { PermissionsGuard } from '../../auth/guards/permissions/permissions.guard';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../../auth/constants/permissions.constants';
 
 @ApiTags('Vacancy Moderation')
 @ApiBearerAuth()
@@ -21,7 +22,7 @@ export class VacancyModerationController {
 
     @ApiOperation({ summary: 'Approve vacancy' })
     @ApiParam({ name: 'id' })
-    @Permissions('vacancy.approve')
+    @Permissions(PERMISSIONS.VACANCY.APPROVE)
     @Patch(':id/approve')
     approve(@Param('id') id: string, @Req() req: any) {
         return this.service.approve(id, req.user, req);
@@ -29,7 +30,7 @@ export class VacancyModerationController {
 
     @ApiOperation({ summary: 'Reject vacancy' })
     @ApiParam({ name: 'id' })
-    @Permissions('vacancy.reject')
+    @Permissions(PERMISSIONS.VACANCY.REJECT)
     @Patch(':id/reject')
     reject(@Param('id') id: string, @Req() req: any) {
         return this.service.reject(id, req.user, req);
@@ -37,7 +38,7 @@ export class VacancyModerationController {
 
     @ApiOperation({ summary: 'Archive vacancy' })
     @ApiParam({ name: 'id' })
-    @Permissions('vacancy.archive')
+    @Permissions(PERMISSIONS.VACANCY.ARCHIVE)
     @Patch(':id/archive')
     archive(@Param('id') id: string, @Req() req) {
         return this.service.archive(id, req.user, req);

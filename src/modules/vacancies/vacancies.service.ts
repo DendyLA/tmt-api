@@ -8,15 +8,20 @@ import { CreateVacancyDto } from './dto/create-vacancy.dto/create-vacancy.dto';
 import { UpdateVacancyDto } from './dto/update-vacancy.dto/update-vacancy.dto';
 import { Prisma, VacancyStatus } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { PERMISSIONS } from '../auth/constants/permissions.constants';
+import { PermissionResolverService } from '../auth/services/permission-resolver.service';
 
 @Injectable()
 export class VacanciesService {
     constructor(
         private prisma: PrismaService,
         private eventEmitter: EventEmitter2,
+        private permissionResolver: PermissionResolverService,
     ) {}
 
-    private buildVacancyFilter(user?: any): Prisma.VacancyWhereInput {
+    private async buildVacancyFilter(
+        user?: any,
+    ): Promise<Prisma.VacancyWhereInput> {
         const baseFilter = { deletedAt: null };
 
         if (!user) {
@@ -26,7 +31,7 @@ export class VacanciesService {
             };
         }
 
-        if (['admin', 'superadmin'].includes(user.role)) {
+        if (await this.canManageVacancies(user)) {
             return baseFilter;
         }
 
@@ -56,17 +61,18 @@ export class VacanciesService {
 
     async findAll(user?: any) {
         return this.prisma.vacancy.findMany({
-            where: this.buildVacancyFilter(user),
+            where: await this.buildVacancyFilter(user),
         });
     }
 
     async findOne(id: string, user?: any) {
-        const isAdminOrSuper =
-            user && ['admin', 'superadmin'].includes(user.role);
+        const canManageVacancies = user
+            ? await this.canManageVacancies(user)
+            : false;
 
         const where: Prisma.VacancyWhereInput = { id };
 
-        if (!isAdminOrSuper) {
+        if (!canManageVacancies) {
             where.OR = user
                 ? [{ status: VacancyStatus.APPROVED }, { userId: user.sub }]
                 : [{ status: VacancyStatus.APPROVED }];
@@ -90,10 +96,7 @@ export class VacanciesService {
             throw new NotFoundException('Vacancy not found');
         }
 
-        if (
-            !['admin', 'superadmin'].includes(user.role) &&
-            vacancy.userId !== user.sub
-        ) {
+        if (!(await this.canAccessOwnedVacancy(user, vacancy.userId))) {
             throw new ForbiddenException('Not allowed');
         }
 
@@ -169,10 +172,7 @@ export class VacanciesService {
             throw new NotFoundException('Vacancy not found or not deleted');
         }
 
-        if (
-            !['admin', 'superadmin'].includes(user.role) &&
-            vacancy.userId !== user.sub
-        ) {
+        if (!(await this.canAccessOwnedVacancy(user, vacancy.userId))) {
             throw new ForbiddenException('Not allowed');
         }
 
@@ -201,10 +201,7 @@ export class VacanciesService {
             throw new NotFoundException('Vacancy not found');
         }
 
-        if (
-            !['admin', 'superadmin'].includes(user.role) &&
-            vacancy.userId !== user.sub
-        ) {
+        if (!(await this.canAccessOwnedVacancy(user, vacancy.userId))) {
             throw new ForbiddenException('Not allowed');
         }
 
@@ -222,5 +219,20 @@ export class VacanciesService {
         });
 
         return { success: true };
+    }
+
+    private async canAccessOwnedVacancy(
+        user: any,
+        vacancyOwnerId: string,
+    ): Promise<boolean> {
+        return (
+            vacancyOwnerId === user.sub || (await this.canManageVacancies(user))
+        );
+    }
+
+    private async canManageVacancies(user: any): Promise<boolean> {
+        return this.permissionResolver.hasAll(user, [
+            PERMISSIONS.VACANCY.MANAGE,
+        ]);
     }
 }

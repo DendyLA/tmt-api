@@ -7,10 +7,15 @@ import {
     UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../../../../database/prisma/prisma.service';
+import { PERMISSIONS } from '../../constants/permissions.constants';
+import { PermissionResolverService } from '../../services/permission-resolver.service';
 
 @Injectable()
 export class VacancyOwnershipGuard implements CanActivate {
-    constructor(private prisma: PrismaService) {}
+    constructor(
+        private prisma: PrismaService,
+        private permissionResolver: PermissionResolverService,
+    ) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const req = context.switchToHttp().getRequest();
@@ -19,8 +24,6 @@ export class VacancyOwnershipGuard implements CanActivate {
 
         if (!user) throw new UnauthorizedException();
 
-        if (['admin', 'superadmin'].includes(user.role)) return true;
-
         const vacancy = await this.prisma.vacancy.findUnique({
             where: { id },
             select: { userId: true },
@@ -28,8 +31,15 @@ export class VacancyOwnershipGuard implements CanActivate {
 
         if (!vacancy) throw new NotFoundException('Vacancy not found');
 
-        if (vacancy.userId !== user.sub)
+        const canManageVacancies = await this.permissionResolver.hasAll(user, [
+            PERMISSIONS.VACANCY.MANAGE,
+        ]);
+
+        if (canManageVacancies) return true;
+
+        if (vacancy.userId !== user.sub) {
             throw new ForbiddenException('Not your resource');
+        }
 
         return true;
     }

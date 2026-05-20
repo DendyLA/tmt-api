@@ -3,81 +3,89 @@ import { Pool } from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
+import {
+    ALL_PERMISSIONS,
+    PERMISSIONS,
+} from '../src/modules/auth/constants/permissions.constants'
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-    // =========================
-    // 1. ROLES
-    // =========================
     const [superadmin, admin, user] = await Promise.all([
-        prisma.role.upsert({ where: { name: 'superadmin' }, update: {}, create: { name: 'superadmin' } }),
-        prisma.role.upsert({ where: { name: 'admin' }, update: {}, create: { name: 'admin' } }),
-        prisma.role.upsert({ where: { name: 'user' }, update: {}, create: { name: 'user' } }),
+        prisma.role.upsert({
+            where: { name: 'superadmin' },
+            update: {},
+            create: { name: 'superadmin' },
+        }),
+        prisma.role.upsert({
+            where: { name: 'admin' },
+            update: {},
+            create: { name: 'admin' },
+        }),
+        prisma.role.upsert({
+            where: { name: 'user' },
+            update: {},
+            create: { name: 'user' },
+        }),
     ])
 
-    // =========================
-    // 2. PERMISSIONS
-    // =========================
-    const [
-        vacancyCreate,
-        vacancyUpdate,
-        vacancyDelete,
-        vacancyApprove,
-        vacancyReject,
-        vacancyArchive,
-        vacancyManage,
-        vacancyRestore,
-        vacancyRollback,
-        usersManage,
-    ] = await Promise.all([
-        prisma.permission.upsert({ where: { key: 'vacancy.create' }, update: {}, create: { key: 'vacancy.create' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.update' }, update: {}, create: { key: 'vacancy.update' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.delete' }, update: {}, create: { key: 'vacancy.delete' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.approve' }, update: {}, create: { key: 'vacancy.approve' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.reject' }, update: {}, create: { key: 'vacancy.reject' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.archive' }, update: {}, create: { key: 'vacancy.archive' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.manage' }, update: {}, create: { key: 'vacancy.manage' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.restore' }, update: {}, create: { key: 'vacancy.restore' } }),
-        prisma.permission.upsert({ where: { key: 'vacancy.rollback' }, update: {}, create: { key: 'vacancy.rollback' } }),
-        prisma.permission.upsert({ where: { key: 'users.manage' }, update: {}, create: { key: 'users.manage' } }),
-    ])
+    const permissionRecords = await Promise.all(
+        ALL_PERMISSIONS.map((key) =>
+            prisma.permission.upsert({
+                where: { key },
+                update: {},
+                create: { key },
+            }),
+        ),
+    )
 
-    // =========================
-    // 3. ROLE → PERMISSIONS
-    // =========================
+    const permissionByKey = Object.fromEntries(
+        permissionRecords.map((permission) => [permission.key, permission]),
+    )
+
     await prisma.rolePermission.createMany({
         data: [
-            // SUPERADMIN — всё
-            { roleId: superadmin.id, permissionId: vacancyCreate.id },
-            { roleId: superadmin.id, permissionId: vacancyUpdate.id },
-            { roleId: superadmin.id, permissionId: vacancyDelete.id },
-            { roleId: superadmin.id, permissionId: vacancyApprove.id },
-            { roleId: superadmin.id, permissionId: vacancyReject.id },
-            { roleId: superadmin.id, permissionId: vacancyArchive.id },
-            { roleId: superadmin.id, permissionId: vacancyManage.id },
-            { roleId: superadmin.id, permissionId: vacancyRestore.id },
-            { roleId: superadmin.id, permissionId: vacancyRollback.id },
-            { roleId: superadmin.id, permissionId: usersManage.id },
-            // ADMIN — модерация
-            { roleId: admin.id, permissionId: vacancyApprove.id },
-            { roleId: admin.id, permissionId: vacancyReject.id },
-            { roleId: admin.id, permissionId: vacancyArchive.id },
-            { roleId: admin.id, permissionId: vacancyManage.id },
-            // USER — создать, обновить, удалить своё
-            { roleId: user.id, permissionId: vacancyCreate.id },
-            { roleId: user.id, permissionId: vacancyUpdate.id },
-            { roleId: user.id, permissionId: vacancyDelete.id },
+            ...ALL_PERMISSIONS.map((key) => ({
+                roleId: superadmin.id,
+                permissionId: permissionByKey[key].id,
+            })),
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.VACANCY.APPROVE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.VACANCY.REJECT].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.VACANCY.ARCHIVE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.VACANCY.MANAGE].id,
+            },
+            {
+                roleId: user.id,
+                permissionId: permissionByKey[PERMISSIONS.VACANCY.CREATE].id,
+            },
+            {
+                roleId: user.id,
+                permissionId: permissionByKey[PERMISSIONS.VACANCY.UPDATE].id,
+            },
+            {
+                roleId: user.id,
+                permissionId: permissionByKey[PERMISSIONS.VACANCY.DELETE].id,
+            },
         ],
         skipDuplicates: true,
     })
 
-    // =========================
-    // 4. SUPERADMIN USER
-    // =========================
     const hashedPassword = await bcrypt.hash('N2UsyMo2', 10)
+
     await prisma.user.upsert({
         where: { email: 'd.atayev@tmt.tm' },
         update: {},

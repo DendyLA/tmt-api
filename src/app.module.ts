@@ -9,7 +9,6 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 
 import { JwtAuthGuard } from './modules/auth/guards/jwt/jwt.guard';
-import { RolesGuard } from './modules/auth/guards/roles/roles.guard';
 import { PermissionsGuard } from './modules/auth/guards/permissions/permissions.guard';
 
 import { VacanciesModule } from './modules/vacancies/vacancies.module';
@@ -34,10 +33,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         {
             provide: APP_GUARD,
             useClass: JwtAuthGuard,
-        },
-        {
-            provide: APP_GUARD,
-            useClass: RolesGuard,
         },
         {
             provide: APP_GUARD,

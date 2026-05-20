@@ -19,6 +19,7 @@ import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt/jwt.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
+import { PERMISSIONS } from '../auth/constants/permissions.constants';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 @ApiBearerAuth()
@@ -43,7 +44,7 @@ export class VacanciesController {
     // ================= CREATE =================
 
     @UseGuards(JwtAuthGuard, PermissionsGuard)
-    @Permissions('vacancy.create')
+    @Permissions(PERMISSIONS.VACANCY.CREATE)
     @Post()
     create(@Req() req, @Body() dto: CreateVacancyDto) {
         return this.service.create(req.user.sub, dto, req);
@@ -52,7 +53,7 @@ export class VacanciesController {
     // ================= UPDATE =================
 
     @UseGuards(JwtAuthGuard, PermissionsGuard, VacancyOwnershipGuard)
-    @Permissions('vacancy.update')
+    @Permissions(PERMISSIONS.VACANCY.UPDATE)
     @Patch(':id')
     update(@Param('id') id: string, @Req() req, @Body() dto: UpdateVacancyDto) {
         return this.service.update(id, req.user, dto, req);
@@ -61,7 +62,7 @@ export class VacanciesController {
     // ================= DELETE =================
 
     @UseGuards(JwtAuthGuard, PermissionsGuard, VacancyOwnershipGuard)
-    @Permissions('vacancy.delete')
+    @Permissions(PERMISSIONS.VACANCY.DELETE)
     @Delete(':id')
     remove(@Param('id') id: string, @Req() req) {
         return this.service.remove(id, req.user, req);
@@ -76,7 +77,7 @@ export class VacanciesController {
     }
 
     @UseGuards(JwtAuthGuard, PermissionsGuard, VacancyOwnershipGuard)
-    @Permissions('vacancy.rollback')
+    @Permissions(PERMISSIONS.VACANCY.ROLLBACK)
     @Post(':id/rollback/:versionId')
     rollback(
         @Param('id') id: string,
@@ -89,7 +90,7 @@ export class VacanciesController {
     // ================= RESTORE =================
 
     @UseGuards(JwtAuthGuard, PermissionsGuard, VacancyOwnershipGuard)
-    @Permissions('vacancy.restore')
+    @Permissions(PERMISSIONS.VACANCY.RESTORE)
     @Post(':id/restore')
     restore(@Param('id') id: string, @Req() req) {
         return this.service.restore(id, req.user, req);
