@@ -1,5 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUrl, MaxLength } from 'class-validator';
+import {
+    IsInt,
+    IsOptional,
+    IsString,
+    IsUrl,
+    MaxLength,
+    Min,
+} from 'class-validator';
 
 export class CreateCompanySocialLinkDto {
     @ApiProperty({ example: 'instagram' })
@@ -17,4 +24,10 @@ export class CreateCompanySocialLinkDto {
     @IsString()
     @MaxLength(120)
     username?: string;
+
+    @ApiPropertyOptional({ example: 10, default: 0 })
+    @IsOptional()
+    @IsInt()
+    @Min(0)
+    sortOrder?: number;
 }

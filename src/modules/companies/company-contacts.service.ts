@@ -18,7 +18,12 @@ export class CompanyContactsService {
         });
     }
 
-    async upsert(companyId: string, user: any, dto: UpsertCompanyContactDto, req?: any) {
+    async upsert(
+        companyId: string,
+        user: any,
+        dto: UpsertCompanyContactDto,
+        req?: any,
+    ) {
         await this.ensureActiveCompany(companyId);
 
         const contact = await this.prisma.companyContact.upsert({

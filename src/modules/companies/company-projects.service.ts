@@ -21,11 +21,16 @@ export class CompanyProjectsService {
                 status: ProjectStatus.PUBLISHED,
                 deletedAt: null,
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
     }
 
-    async create(companyId: string, user: any, dto: CreateProjectDto, req?: any) {
+    async create(
+        companyId: string,
+        user: any,
+        dto: CreateProjectDto,
+        req?: any,
+    ) {
         await this.ensureActiveCompany(companyId);
 
         const project = await this.prisma.project.create({

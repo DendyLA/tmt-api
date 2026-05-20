@@ -82,6 +82,31 @@ async function main() {
             },
             {
                 roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.CONTACT_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.SOCIAL_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.PROJECT_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.SERVICE_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.PARTNER_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
                 permissionId: permissionByKey[PERMISSIONS.COMPANY.MANAGE].id,
             },
             {

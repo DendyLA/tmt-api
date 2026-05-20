@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma/prisma.service';
-import { CreateCompanySocialLinkDto } from './dto/create-company-social-link.dto';
-import { UpdateCompanySocialLinkDto } from './dto/update-company-social-link.dto';
+import { CreatePartnerDto } from './dto/create-partner.dto';
+import { UpdatePartnerDto } from './dto/update-partner.dto';
 
 @Injectable()
-export class CompanySocialLinksService {
+export class CompanyPartnersService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly eventEmitter: EventEmitter2,
@@ -14,52 +14,43 @@ export class CompanySocialLinksService {
     async findByCompanySlug(slug: string) {
         const company = await this.findActiveCompanyBySlug(slug);
 
-        return this.prisma.companySocialLink.findMany({
-            where: { companyId: company.id, deletedAt: null },
+        return this.prisma.partner.findMany({
+            where: {
+                companyId: company.id,
+                isActive: true,
+                deletedAt: null,
+            },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
     }
 
-    async create(
-        companyId: string,
-        user: any,
-        dto: CreateCompanySocialLinkDto,
-        req?: any,
-    ) {
+    async create(companyId: string, user: any, dto: CreatePartnerDto, req?: any) {
         await this.ensureActiveCompany(companyId);
 
-        const socialLink = await this.prisma.companySocialLink.create({
-            data: {
-                ...dto,
-                companyId,
-            },
+        const partner = await this.prisma.partner.create({
+            data: { ...dto, companyId },
         });
 
-        this.eventEmitter.emit('company.socialLink.created', {
+        this.eventEmitter.emit('company.partner.created', {
             user,
-            socialLink,
+            partner,
             req,
         });
 
-        return socialLink;
+        return partner;
     }
 
-    async update(
-        id: string,
-        user: any,
-        dto: UpdateCompanySocialLinkDto,
-        req?: any,
-    ) {
-        const socialLink = await this.findActiveSocialLink(id);
+    async update(id: string, user: any, dto: UpdatePartnerDto, req?: any) {
+        const partner = await this.findActivePartner(id);
 
-        const updated = await this.prisma.companySocialLink.update({
+        const updated = await this.prisma.partner.update({
             where: { id },
             data: dto,
         });
 
-        this.eventEmitter.emit('company.socialLink.updated', {
+        this.eventEmitter.emit('company.partner.updated', {
             user,
-            before: socialLink,
+            before: partner,
             after: updated,
             req,
         });
@@ -68,32 +59,30 @@ export class CompanySocialLinksService {
     }
 
     async remove(id: string, user: any, req?: any) {
-        const socialLink = await this.findActiveSocialLink(id);
+        const partner = await this.findActivePartner(id);
 
-        const deleted = await this.prisma.companySocialLink.update({
+        const deleted = await this.prisma.partner.update({
             where: { id },
             data: { deletedAt: new Date() },
         });
 
-        this.eventEmitter.emit('company.socialLink.deleted', {
+        this.eventEmitter.emit('company.partner.deleted', {
             user,
-            socialLink: deleted,
+            partner: deleted,
             req,
         });
 
         return { success: true };
     }
 
-    private async findActiveSocialLink(id: string) {
-        const socialLink = await this.prisma.companySocialLink.findUnique({
-            where: { id },
-        });
+    private async findActivePartner(id: string) {
+        const partner = await this.prisma.partner.findUnique({ where: { id } });
 
-        if (!socialLink || socialLink.deletedAt) {
-            throw new NotFoundException('Social link not found');
+        if (!partner || partner.deletedAt) {
+            throw new NotFoundException('Partner not found');
         }
 
-        return socialLink;
+        return partner;
     }
 
     private async ensureActiveCompany(id: string) {

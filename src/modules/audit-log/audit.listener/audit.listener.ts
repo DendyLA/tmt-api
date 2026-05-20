@@ -216,4 +216,127 @@ export class AuditListener {
             userAgent: payload.req?.headers?.['user-agent'],
         });
     }
+
+    @OnEvent('company.serviceCategory.created')
+    async handleCompanyServiceCategoryCreated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.category.companyId,
+            action: 'COMPANY_SERVICE_CATEGORY_CREATED',
+            entityType: 'service_category',
+            entityId: payload.category.id,
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.serviceCategory.updated')
+    async handleCompanyServiceCategoryUpdated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.after.companyId,
+            action: 'COMPANY_SERVICE_CATEGORY_UPDATED',
+            entityType: 'service_category',
+            entityId: payload.after.id,
+            metadata: { before: payload.before, after: payload.after },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.serviceCategory.deleted')
+    async handleCompanyServiceCategoryDeleted(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.category.companyId,
+            action: 'COMPANY_SERVICE_CATEGORY_DELETED',
+            entityType: 'service_category',
+            entityId: payload.category.id,
+            metadata: { deleted: payload.category },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.service.created')
+    async handleCompanyServiceCreated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.service.companyId,
+            action: 'COMPANY_SERVICE_CREATED',
+            entityType: 'service',
+            entityId: payload.service.id,
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.service.updated')
+    async handleCompanyServiceUpdated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.after.companyId,
+            action: 'COMPANY_SERVICE_UPDATED',
+            entityType: 'service',
+            entityId: payload.after.id,
+            metadata: { before: payload.before, after: payload.after },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.service.deleted')
+    async handleCompanyServiceDeleted(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.service.companyId,
+            action: 'COMPANY_SERVICE_DELETED',
+            entityType: 'service',
+            entityId: payload.service.id,
+            metadata: { deleted: payload.service },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.partner.created')
+    async handleCompanyPartnerCreated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.partner.companyId,
+            action: 'COMPANY_PARTNER_CREATED',
+            entityType: 'partner',
+            entityId: payload.partner.id,
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.partner.updated')
+    async handleCompanyPartnerUpdated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.after.companyId,
+            action: 'COMPANY_PARTNER_UPDATED',
+            entityType: 'partner',
+            entityId: payload.after.id,
+            metadata: { before: payload.before, after: payload.after },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('company.partner.deleted')
+    async handleCompanyPartnerDeleted(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.partner.companyId,
+            action: 'COMPANY_PARTNER_DELETED',
+            entityType: 'partner',
+            entityId: payload.partner.id,
+            metadata: { deleted: payload.partner },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
 }

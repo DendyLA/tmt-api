@@ -98,9 +98,12 @@ model Company {
   members   CompanyMember[]
   vacancies Vacancy[]
 
-  contact     CompanyContact?
-  socialLinks CompanySocialLink[]
-  projects    Project[]
+  contact           CompanyContact?
+  socialLinks       CompanySocialLink[]
+  projects          Project[]
+  serviceCategories ServiceCategory[]
+  services          Service[]
+  partners          Partner[]
 }
 
 model CompanyMember {
@@ -144,9 +147,10 @@ model CompanySocialLink {
   companyId String
   company   Company @relation(fields: [companyId], references: [id])
 
-  platform String
-  url      String
-  username String?
+  platform  String
+  url       String
+  username  String?
+  sortOrder Int     @default(0)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -164,6 +168,7 @@ model Project {
   title       String
   description String
   status      ProjectStatus @default(DRAFT)
+  sortOrder   Int           @default(0)
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -171,6 +176,68 @@ model Project {
 
   @@index([companyId])
   @@index([status])
+}
+
+model ServiceCategory {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  name        String
+  slug        String
+  description String?
+  sortOrder   Int     @default(0)
+
+  services Service[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+}
+
+model Service {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  categoryId String?
+  category   ServiceCategory? @relation(fields: [categoryId], references: [id])
+
+  title       String
+  description String
+  sortOrder   Int    @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([companyId])
+  @@index([categoryId])
+}
+
+model Partner {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  name      String
+  website   String?
+  logo      String?
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([companyId])
+  @@index([isActive])
 }
 
 enum VacancyStatus {

@@ -17,6 +17,8 @@ export const PERMISSIONS = {
         CONTACT_MANAGE: 'company.contact.manage',
         SOCIAL_MANAGE: 'company.social.manage',
         PROJECT_MANAGE: 'company.project.manage',
+        SERVICE_MANAGE: 'company.service.manage',
+        PARTNER_MANAGE: 'company.partner.manage',
         MANAGE: 'company.manage',
     },
     USERS: {
@@ -40,6 +42,8 @@ export const ALL_PERMISSIONS = [
     PERMISSIONS.COMPANY.CONTACT_MANAGE,
     PERMISSIONS.COMPANY.SOCIAL_MANAGE,
     PERMISSIONS.COMPANY.PROJECT_MANAGE,
+    PERMISSIONS.COMPANY.SERVICE_MANAGE,
+    PERMISSIONS.COMPANY.PARTNER_MANAGE,
     PERMISSIONS.COMPANY.MANAGE,
     PERMISSIONS.USERS.MANAGE,
 ] as const;

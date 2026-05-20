@@ -143,7 +143,7 @@ describe('Company profile services', () => {
                 status: ProjectStatus.PUBLISHED,
                 deletedAt: null,
             },
-            orderBy: { createdAt: 'desc' },
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
 
         await expect(
