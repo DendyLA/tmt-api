@@ -25,6 +25,8 @@ model User {
 
   vacancies          Vacancy[]
   companyMemberships CompanyMember[]
+  posts              Post[]
+  media              Media[]
 }
 
 model Role {
@@ -80,6 +82,7 @@ model Vacancy {
   deletedAt DateTime?
 
   versions VacancyVersion[]
+  tags     VacancyTag[]
 }
 
 model Company {
@@ -104,6 +107,8 @@ model Company {
   serviceCategories ServiceCategory[]
   services          Service[]
   partners          Partner[]
+  posts             Post[]
+  media             Media[]
 }
 
 model CompanyMember {
@@ -174,6 +179,8 @@ model Project {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  tags ProjectTag[]
+
   @@index([companyId])
   @@index([status])
 }
@@ -240,6 +247,118 @@ model Partner {
   @@index([isActive])
 }
 
+model Post {
+  id String @id @default(uuid())
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdBy String?
+  author    User?   @relation(fields: [createdBy], references: [id])
+
+  title   String
+  slug    String  @unique
+  excerpt String?
+  content String
+
+  type   PostType   @default(NEWS)
+  status PostStatus @default(DRAFT)
+
+  isGlobal  Boolean @default(false)
+  sortOrder Int     @default(0)
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  tags PostTag[]
+
+  @@index([companyId])
+  @@index([createdBy])
+  @@index([status])
+  @@index([type])
+  @@index([isGlobal])
+}
+
+model Media {
+  id String @id @default(uuid())
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  createdBy String?
+  author    User?   @relation(fields: [createdBy], references: [id])
+
+  url  String
+  type MediaType
+
+  entityType String?
+  entityId   String?
+
+  isGlobal  Boolean @default(false)
+  altText   String?
+  title     String?
+  sortOrder Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@index([companyId])
+  @@index([createdBy])
+  @@index([type])
+  @@index([isGlobal])
+  @@index([entityType, entityId])
+}
+
+model Tag {
+  id String @id @default(uuid())
+
+  name String
+  slug String @unique
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts     PostTag[]
+  projects  ProjectTag[]
+  vacancies VacancyTag[]
+}
+
+model PostTag {
+  postId String
+  tagId  String
+
+  post Post @relation(fields: [postId], references: [id])
+  tag  Tag  @relation(fields: [tagId], references: [id])
+
+  @@id([postId, tagId])
+  @@index([tagId])
+}
+
+model ProjectTag {
+  projectId String
+  tagId     String
+
+  project Project @relation(fields: [projectId], references: [id])
+  tag     Tag     @relation(fields: [tagId], references: [id])
+
+  @@id([projectId, tagId])
+  @@index([tagId])
+}
+
+model VacancyTag {
+  vacancyId String
+  tagId     String
+
+  vacancy Vacancy @relation(fields: [vacancyId], references: [id])
+  tag     Tag     @relation(fields: [tagId], references: [id])
+
+  @@id([vacancyId, tagId])
+  @@index([tagId])
+}
+
 enum VacancyStatus {
   DRAFT
   PENDING
@@ -252,6 +371,26 @@ enum ProjectStatus {
   DRAFT
   PUBLISHED
   ARCHIVED
+}
+
+enum PostType {
+  NEWS
+  BLOG
+  ARTICLE
+  ANNOUNCEMENT
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  DOCUMENT
+  OTHER
 }
 
 model VacancyVersion {

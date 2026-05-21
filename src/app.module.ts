@@ -13,6 +13,9 @@ import { PermissionsGuard } from './modules/auth/guards/permissions/permissions.
 
 import { VacanciesModule } from './modules/vacancies/vacancies.module';
 import { CompaniesModule } from './modules/companies/companies.module';
+import { PostsModule } from './modules/posts/posts.module';
+import { MediaModule } from './modules/media/media.module';
+import { TagsModule } from './modules/tags/tags.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AuditLogMiddleware } from './common/middleware/audit-log/audit-log.middleware';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -25,6 +28,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         ConfigModule.forRoot({ isGlobal: true }),
         VacanciesModule,
         CompaniesModule,
+        PostsModule,
+        MediaModule,
+        TagsModule,
         AuditLogModule,
         EventEmitterModule.forRoot(),
     ],

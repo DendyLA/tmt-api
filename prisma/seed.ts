@@ -110,6 +110,58 @@ async function main() {
                 permissionId: permissionByKey[PERMISSIONS.COMPANY.MANAGE].id,
             },
             {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.POST.CREATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.POST.UPDATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.POST.DELETE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.POST.PUBLISH].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.POST.MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.MEDIA.CREATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.MEDIA.UPDATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.MEDIA.DELETE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.MEDIA.MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.TAG.CREATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.TAG.UPDATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.TAG.DELETE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.TAG.MANAGE].id,
+            },
+            {
                 roleId: user.id,
                 permissionId: permissionByKey[PERMISSIONS.VACANCY.CREATE].id,
             },

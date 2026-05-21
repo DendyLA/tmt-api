@@ -339,4 +339,109 @@ export class AuditListener {
             userAgent: payload.req?.headers?.['user-agent'],
         });
     }
+
+    @OnEvent('post.created')
+    async handlePostCreated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.post.companyId,
+            action: 'POST_CREATED',
+            entityType: 'post',
+            entityId: payload.post.id,
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('post.updated')
+    async handlePostUpdated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.after.companyId,
+            action: 'POST_UPDATED',
+            entityType: 'post',
+            entityId: payload.after.id,
+            metadata: {
+                before: payload.before,
+                after: payload.after,
+            },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('post.published')
+    async handlePostPublished(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.after.companyId,
+            action: 'POST_PUBLISHED',
+            entityType: 'post',
+            entityId: payload.after.id,
+            metadata: {
+                before: payload.before,
+                after: payload.after,
+            },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('post.deleted')
+    async handlePostDeleted(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.post.companyId,
+            action: 'POST_DELETED',
+            entityType: 'post',
+            entityId: payload.post.id,
+            metadata: { deleted: payload.post },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('media.created')
+    async handleMediaCreated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.media.companyId,
+            action: 'MEDIA_CREATED',
+            entityType: 'media',
+            entityId: payload.media.id,
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('media.updated')
+    async handleMediaUpdated(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.after.companyId,
+            action: 'MEDIA_UPDATED',
+            entityType: 'media',
+            entityId: payload.after.id,
+            metadata: {
+                before: payload.before,
+                after: payload.after,
+            },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('media.deleted')
+    async handleMediaDeleted(payload: any) {
+        await this.audit.log({
+            userId: payload.user.sub,
+            companyId: payload.media.companyId,
+            action: 'MEDIA_DELETED',
+            entityType: 'media',
+            entityId: payload.media.id,
+            metadata: { deleted: payload.media },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
 }
