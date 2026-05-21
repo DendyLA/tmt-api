@@ -5,6 +5,7 @@ import { PostsService } from './posts.service';
 describe('PostsService', () => {
     let prisma: any;
     let eventEmitter: { emit: jest.Mock };
+    let contentVersions: { createVersion: jest.Mock; findOne: jest.Mock };
     let service: PostsService;
 
     const user = { sub: 'user-1' };
@@ -36,13 +37,22 @@ describe('PostsService', () => {
             post: {
                 create: jest.fn(),
                 findMany: jest.fn(),
+                count: jest.fn(),
                 findUnique: jest.fn(),
                 update: jest.fn(),
             },
         };
 
         eventEmitter = { emit: jest.fn() };
-        service = new PostsService(prisma, eventEmitter as any);
+        contentVersions = {
+            createVersion: jest.fn(),
+            findOne: jest.fn(),
+        };
+        service = new PostsService(
+            prisma,
+            eventEmitter as any,
+            contentVersions as any,
+        );
     });
 
     it('creates company-scoped post', async () => {
@@ -134,22 +144,31 @@ describe('PostsService', () => {
     it('finds published global and company posts for company site', async () => {
         prisma.company.findFirst.mockResolvedValue(company);
         prisma.post.findMany.mockResolvedValue([post]);
+        prisma.post.count.mockResolvedValue(1);
 
-        await expect(service.findForCompanySite(company.slug)).resolves.toEqual([
-            post,
-        ]);
+        await expect(service.findForCompanySite(company.slug)).resolves.toEqual({
+            data: [post],
+            meta: { total: 1, page: 1, limit: 20, pages: 1 },
+        });
 
         expect(prisma.post.findMany).toHaveBeenCalledWith({
             where: {
                 deletedAt: null,
                 status: PostStatus.PUBLISHED,
-                OR: [{ isGlobal: true }, { companyId: company.id }],
+                AND: [
+                    { OR: [{ isGlobal: true }, { companyId: company.id }] },
+                ],
+            },
+            include: {
+                tags: { include: { tag: true } },
             },
             orderBy: [
                 { sortOrder: 'asc' },
                 { publishedAt: 'desc' },
                 { createdAt: 'desc' },
             ],
+            skip: 0,
+            take: 20,
         });
     });
 

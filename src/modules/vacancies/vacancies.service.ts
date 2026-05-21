@@ -10,6 +10,11 @@ import { Prisma, VacancyStatus } from '@prisma/client';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PERMISSIONS } from '../auth/constants/permissions.constants';
 import { PermissionResolverService } from '../auth/services/permission-resolver.service';
+import {
+    getPagination,
+    paginatedResponse,
+    PaginationQueryDto,
+} from '../../common/dto/pagination-query.dto';
 
 @Injectable()
 export class VacanciesService {
@@ -59,10 +64,35 @@ export class VacanciesService {
         return vacancy;
     }
 
-    async findAll(user?: any) {
-        return this.prisma.vacancy.findMany({
-            where: await this.buildVacancyFilter(user),
-        });
+    async findAll(
+        user?: any,
+        tagSlug?: string,
+        query: PaginationQueryDto = {},
+    ) {
+        const { page, limit, skip, take } = getPagination(query);
+        const accessFilter = await this.buildVacancyFilter(user);
+        const where: Prisma.VacancyWhereInput = {
+            AND: [
+                accessFilter,
+                ...(query.search ? [this.buildSearchFilter(query.search)] : []),
+            ],
+            ...(tagSlug ? this.buildTagFilter(tagSlug) : {}),
+        };
+
+        const [data, total] = await Promise.all([
+            this.prisma.vacancy.findMany({
+                where,
+                include: {
+                    tags: { include: { tag: true } },
+                },
+                skip,
+                take,
+                orderBy: { createdAt: 'desc' },
+            }),
+            this.prisma.vacancy.count({ where }),
+        ]);
+
+        return paginatedResponse(data, total, page, limit);
     }
 
     async findOne(id: string, user?: any) {
@@ -78,7 +108,12 @@ export class VacanciesService {
                 : [{ status: VacancyStatus.APPROVED }];
         }
 
-        const vacancy = await this.prisma.vacancy.findFirst({ where });
+        const vacancy = await this.prisma.vacancy.findFirst({
+            where,
+            include: {
+                tags: { include: { tag: true } },
+            },
+        });
 
         if (!vacancy) {
             throw new NotFoundException('Vacancy not found');
@@ -234,5 +269,26 @@ export class VacanciesService {
         return this.permissionResolver.hasAll(user, [
             PERMISSIONS.VACANCY.MANAGE,
         ]);
+    }
+
+    private buildTagFilter(tagSlug: string): Prisma.VacancyWhereInput {
+        return {
+            tags: {
+                some: {
+                    tag: { slug: tagSlug },
+                },
+            },
+        };
+    }
+
+    private buildSearchFilter(search: string): Prisma.VacancyWhereInput {
+        return {
+            OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { description: { contains: search, mode: 'insensitive' } },
+                { requirements: { contains: search, mode: 'insensitive' } },
+                { location: { contains: search, mode: 'insensitive' } },
+            ],
+        };
     }
 }

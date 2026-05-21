@@ -1,6 +1,7 @@
 import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -16,6 +17,10 @@ import { CompaniesModule } from './modules/companies/companies.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { MediaModule } from './modules/media/media.module';
 import { TagsModule } from './modules/tags/tags.module';
+import { ContentVersionsModule } from './modules/content-versions/content-versions.module';
+import { SiteModule } from './modules/site/site.module';
+import { AdsModule } from './modules/ads/ads.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { AuditLogMiddleware } from './common/middleware/audit-log/audit-log.middleware';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -26,11 +31,21 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         UsersModule,
         AuthModule,
         ConfigModule.forRoot({ isGlobal: true }),
+        ThrottlerModule.forRoot([
+            {
+                ttl: 60_000,
+                limit: 120,
+            },
+        ]),
         VacanciesModule,
         CompaniesModule,
         PostsModule,
         MediaModule,
         TagsModule,
+        ContentVersionsModule,
+        SiteModule,
+        AdsModule,
+        AdminModule,
         AuditLogModule,
         EventEmitterModule.forRoot(),
     ],
@@ -38,6 +53,10 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
     providers: [
         AppService,
 
+        {
+            provide: APP_GUARD,
+            useClass: ThrottlerGuard,
+        },
         {
             provide: APP_GUARD,
             useClass: JwtAuthGuard,

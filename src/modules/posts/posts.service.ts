@@ -4,8 +4,14 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PostStatus } from '@prisma/client';
+import { PostStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import {
+    getPagination,
+    paginatedResponse,
+    PaginationQueryDto,
+} from '../../common/dto/pagination-query.dto';
+import { ContentVersionsService } from '../content-versions/content-versions.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
@@ -14,6 +20,7 @@ export class PostsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly eventEmitter: EventEmitter2,
+        private readonly contentVersions: ContentVersionsService,
     ) {}
 
     async create(user: any, dto: CreatePostDto, req?: any) {
@@ -35,7 +42,11 @@ export class PostsService {
         return post;
     }
 
-    async findForCompanySite(companySlug: string) {
+    async findForCompanySite(
+        companySlug: string,
+        tagSlug?: string,
+        query: PaginationQueryDto = {},
+    ) {
         const company = await this.prisma.company.findFirst({
             where: { slug: companySlug, deletedAt: null },
             select: { id: true },
@@ -45,31 +56,92 @@ export class PostsService {
             throw new NotFoundException('Company not found');
         }
 
-        return this.prisma.post.findMany({
+        const { page, limit, skip, take } = getPagination(query);
+        const where: Prisma.PostWhereInput = {
+            deletedAt: null,
+            status: PostStatus.PUBLISHED,
+            AND: [
+                { OR: [{ isGlobal: true }, { companyId: company.id }] },
+                ...(query.search ? [this.buildSearchFilter(query.search)] : []),
+            ],
+            ...(tagSlug ? this.buildTagFilter(tagSlug) : {}),
+        };
+
+        const [data, total] = await Promise.all([
+            this.prisma.post.findMany({
+                where,
+                include: {
+                    tags: { include: { tag: true } },
+                },
+                orderBy: [
+                    { sortOrder: 'asc' },
+                    { publishedAt: 'desc' },
+                    { createdAt: 'desc' },
+                ],
+                skip,
+                take,
+            }),
+            this.prisma.post.count({ where }),
+        ]);
+
+        return paginatedResponse(data, total, page, limit);
+    }
+
+    async findOneForCompanySite(companySlug: string, postSlug: string) {
+        const company = await this.prisma.company.findFirst({
+            where: { slug: companySlug, deletedAt: null },
+            select: { id: true },
+        });
+
+        if (!company) {
+            throw new NotFoundException('Company not found');
+        }
+
+        const post = await this.prisma.post.findFirst({
             where: {
+                slug: postSlug,
                 deletedAt: null,
                 status: PostStatus.PUBLISHED,
                 OR: [{ isGlobal: true }, { companyId: company.id }],
             },
-            orderBy: [
-                { sortOrder: 'asc' },
-                { publishedAt: 'desc' },
-                { createdAt: 'desc' },
-            ],
-        });
-    }
-
-    async findAllAdmin() {
-        return this.prisma.post.findMany({
-            where: { deletedAt: null },
             include: {
                 company: true,
-                author: {
-                    select: { id: true, name: true, email: true },
-                },
+                tags: { include: { tag: true } },
             },
-            orderBy: [{ createdAt: 'desc' }],
         });
+
+        if (!post) {
+            throw new NotFoundException('Post not found');
+        }
+
+        return post;
+    }
+
+    async findAllAdmin(query: PaginationQueryDto = {}) {
+        const { page, limit, skip, take } = getPagination(query);
+        const where: Prisma.PostWhereInput = {
+            deletedAt: null,
+            ...(query.search ? this.buildSearchFilter(query.search) : {}),
+        };
+
+        const [data, total] = await Promise.all([
+            this.prisma.post.findMany({
+                where,
+                include: {
+                    company: true,
+                    author: {
+                        select: { id: true, name: true, email: true },
+                    },
+                    tags: { include: { tag: true } },
+                },
+                orderBy: [{ createdAt: 'desc' }],
+                skip,
+                take,
+            }),
+            this.prisma.post.count({ where }),
+        ]);
+
+        return paginatedResponse(data, total, page, limit);
     }
 
     async update(id: string, user: any, dto: UpdatePostDto, req?: any) {
@@ -83,6 +155,7 @@ export class PostsService {
         }
 
         await this.validateScope(nextIsGlobal, nextCompanyId);
+        await this.contentVersions.createVersion('post', post.id, post, user.sub);
 
         const updated = await this.prisma.post.update({
             where: { id },
@@ -105,6 +178,7 @@ export class PostsService {
 
     async publish(id: string, user: any, req?: any) {
         const post = await this.findActivePost(id);
+        await this.contentVersions.createVersion('post', post.id, post, user.sub);
 
         const updated = await this.prisma.post.update({
             where: { id },
@@ -118,6 +192,45 @@ export class PostsService {
             user,
             before: post,
             after: updated,
+            req,
+        });
+
+        return updated;
+    }
+
+    async rollback(id: string, versionId: string, user: any, req?: any) {
+        const post = await this.findActivePost(id);
+        const version = await this.contentVersions.findOne(versionId);
+
+        if (version.entityType !== 'post' || version.entityId !== id) {
+            throw new BadRequestException('Version does not belong to post');
+        }
+
+        await this.contentVersions.createVersion('post', post.id, post, user.sub);
+
+        const data = version.data as any;
+        const updated = await this.prisma.post.update({
+            where: { id },
+            data: {
+                companyId: data.companyId,
+                title: data.title,
+                slug: data.slug,
+                excerpt: data.excerpt,
+                content: data.content,
+                type: data.type,
+                status: data.status,
+                isGlobal: data.isGlobal,
+                sortOrder: data.sortOrder,
+                publishedAt: data.publishedAt,
+                deletedAt: data.deletedAt,
+            },
+        });
+
+        this.eventEmitter.emit('post.rollback', {
+            user,
+            before: post,
+            after: updated,
+            version,
             req,
         });
 
@@ -197,5 +310,25 @@ export class PostsService {
         }
 
         return new Date();
+    }
+
+    private buildTagFilter(tagSlug: string): Prisma.PostWhereInput {
+        return {
+            tags: {
+                some: {
+                    tag: { slug: tagSlug },
+                },
+            },
+        };
+    }
+
+    private buildSearchFilter(search: string): Prisma.PostWhereInput {
+        return {
+            OR: [
+                { title: { contains: search, mode: 'insensitive' } },
+                { excerpt: { contains: search, mode: 'insensitive' } },
+                { content: { contains: search, mode: 'insensitive' } },
+            ],
+        };
     }
 }

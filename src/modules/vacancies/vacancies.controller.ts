@@ -8,6 +8,7 @@ import {
     UseGuards,
     Req,
     Patch,
+    Query,
 } from '@nestjs/common';
 
 import { VacanciesService } from './vacancies.service';
@@ -21,6 +22,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PERMISSIONS } from '../auth/constants/permissions.constants';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiBearerAuth()
 @ApiTags('Vacancies')
@@ -31,8 +33,12 @@ export class VacanciesController {
     // ================= PUBLIC =================
     @Public()
     @Get()
-    findAll(@Req() req) {
-        return this.service.findAll(req.user);
+    findAll(
+        @Req() req,
+        @Query('tag') tagSlug?: string,
+        @Query() query?: PaginationQueryDto,
+    ) {
+        return this.service.findAll(req.user, tagSlug, query);
     }
 
     @Public()

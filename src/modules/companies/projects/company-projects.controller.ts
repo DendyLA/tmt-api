@@ -6,6 +6,7 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -24,8 +25,11 @@ export class CompanyProjectsController {
     @Public()
     @ApiOperation({ summary: 'Get published projects by company slug' })
     @Get('companies/:slug/projects')
-    findPublishedByCompanySlug(@Param('slug') slug: string) {
-        return this.projectsService.findPublishedByCompanySlug(slug);
+    findPublishedByCompanySlug(
+        @Param('slug') slug: string,
+        @Query('tag') tagSlug?: string,
+    ) {
+        return this.projectsService.findPublishedByCompanySlug(slug, tagSlug);
     }
 
     @ApiBearerAuth()

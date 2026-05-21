@@ -6,9 +6,11 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { PERMISSIONS } from '../auth/constants/permissions.constants';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -24,8 +26,22 @@ export class PostsController {
     @Public()
     @ApiOperation({ summary: 'Get published global + company posts by company slug' })
     @Get('companies/:slug/posts')
-    findForCompanySite(@Param('slug') slug: string) {
-        return this.postsService.findForCompanySite(slug);
+    findForCompanySite(
+        @Param('slug') slug: string,
+        @Query('tag') tagSlug?: string,
+        @Query() query?: PaginationQueryDto,
+    ) {
+        return this.postsService.findForCompanySite(slug, tagSlug, query);
+    }
+
+    @Public()
+    @ApiOperation({ summary: 'Get published post by company slug and post slug' })
+    @Get('companies/:slug/posts/:postSlug')
+    findOneForCompanySite(
+        @Param('slug') slug: string,
+        @Param('postSlug') postSlug: string,
+    ) {
+        return this.postsService.findOneForCompanySite(slug, postSlug);
     }
 
     @ApiBearerAuth()
@@ -40,8 +56,8 @@ export class PostsController {
     @ApiOperation({ summary: 'List posts for admin' })
     @Permissions(PERMISSIONS.POST.MANAGE)
     @Get('posts')
-    findAllAdmin() {
-        return this.postsService.findAllAdmin();
+    findAllAdmin(@Query() query: PaginationQueryDto) {
+        return this.postsService.findAllAdmin(query);
     }
 
     @ApiBearerAuth()
@@ -66,5 +82,17 @@ export class PostsController {
     @Delete('posts/:id')
     remove(@Param('id') id: string, @Req() req: any) {
         return this.postsService.remove(id, req.user, req);
+    }
+
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Rollback post to content version' })
+    @Permissions(PERMISSIONS.CONTENT_VERSION.ROLLBACK)
+    @Post('posts/:id/rollback/:versionId')
+    rollback(
+        @Param('id') id: string,
+        @Param('versionId') versionId: string,
+        @Req() req: any,
+    ) {
+        return this.postsService.rollback(id, versionId, req.user, req);
     }
 }

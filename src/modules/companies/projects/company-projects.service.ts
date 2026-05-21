@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { ProjectStatus } from '@prisma/client';
+import { Prisma, ProjectStatus } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -12,7 +12,7 @@ export class CompanyProjectsService {
         private readonly eventEmitter: EventEmitter2,
     ) {}
 
-    async findPublishedByCompanySlug(slug: string) {
+    async findPublishedByCompanySlug(slug: string, tagSlug?: string) {
         const company = await this.findActiveCompanyBySlug(slug);
 
         return this.prisma.project.findMany({
@@ -20,6 +20,10 @@ export class CompanyProjectsService {
                 companyId: company.id,
                 status: ProjectStatus.PUBLISHED,
                 deletedAt: null,
+                ...(tagSlug ? this.buildTagFilter(tagSlug) : {}),
+            },
+            include: {
+                tags: { include: { tag: true } },
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
@@ -118,5 +122,15 @@ export class CompanyProjectsService {
         }
 
         return company;
+    }
+
+    private buildTagFilter(tagSlug: string): Prisma.ProjectWhereInput {
+        return {
+            tags: {
+                some: {
+                    tag: { slug: tagSlug },
+                },
+            },
+        };
     }
 }

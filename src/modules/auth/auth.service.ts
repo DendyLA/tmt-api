@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { randomBytes } from 'crypto';
 
 type UserWithRolePermissions = {
     id: string;
@@ -68,7 +69,7 @@ export class AuthService {
             },
         });
 
-        return this.signToken(user);
+        return this.issueTokens(user);
     }
 
     async login(dto: LoginDto) {
@@ -92,20 +93,119 @@ export class AuthService {
         if (!isValid) throw new UnauthorizedException('Invalid credentials');
         if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
-        return this.signToken(user);
+        return this.issueTokens(user);
     }
 
-    private signToken(user: UserWithRolePermissions) {
+    async refresh(refreshToken: string) {
+        const activeTokens = await this.prisma.refreshToken.findMany({
+            where: {
+                revokedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+            include: {
+                user: {
+                    include: {
+                        role: {
+                            include: {
+                                permissions: {
+                                    include: { permission: true },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const tokenRecord = await this.findMatchingRefreshToken(
+            refreshToken,
+            activeTokens,
+        );
+
+        if (!tokenRecord) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        const isValid = await bcrypt.compare(refreshToken, tokenRecord.tokenHash);
+        if (!isValid || tokenRecord.user.isBanned) {
+            throw new UnauthorizedException('Invalid refresh token');
+        }
+
+        await this.prisma.refreshToken.update({
+            where: { id: tokenRecord.id },
+            data: { revokedAt: new Date() },
+        });
+
+        return this.issueTokens(tokenRecord.user);
+    }
+
+    async logout(refreshToken: string) {
+        const activeTokens = await this.prisma.refreshToken.findMany({
+            where: {
+                revokedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+        });
+
+        for (const token of activeTokens) {
+            if (await bcrypt.compare(refreshToken, token.tokenHash)) {
+                await this.prisma.refreshToken.update({
+                    where: { id: token.id },
+                    data: { revokedAt: new Date() },
+                });
+                break;
+            }
+        }
+
+        return { success: true };
+    }
+
+    private async issueTokens(user: UserWithRolePermissions) {
+        const refreshToken = randomBytes(48).toString('hex');
+        const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
+
+        await this.prisma.refreshToken.create({
+            data: {
+                userId: user.id,
+                tokenHash: refreshTokenHash,
+                expiresAt: this.getRefreshTokenExpiry(),
+            },
+        });
+
+        return {
+            access_token: this.signAccessToken(user),
+            refresh_token: refreshToken,
+        };
+    }
+
+    private signAccessToken(user: UserWithRolePermissions) {
         const permissions =
             user.role?.permissions.map((item) => item.permission.key) ?? [];
 
-        return {
-            access_token: this.jwt.sign({
-                sub: user.id,
-                email: user.email,
-                role: user.role?.name ?? null,
-                permissions,
-            }),
-        };
+        return this.jwt.sign({
+            sub: user.id,
+            email: user.email,
+            role: user.role?.name ?? null,
+            permissions,
+        });
+    }
+
+    private getRefreshTokenExpiry() {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 30);
+        return expiresAt;
+    }
+
+    private async findMatchingRefreshToken<T extends { tokenHash: string }>(
+        refreshToken: string,
+        tokens: T[],
+    ) {
+        for (const token of tokens) {
+            if (await bcrypt.compare(refreshToken, token.tokenHash)) {
+                return token;
+            }
+        }
+
+        return null;
     }
 }

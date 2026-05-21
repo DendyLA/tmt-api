@@ -19,6 +19,8 @@ export const PERMISSIONS = {
         PROJECT_MANAGE: 'company.project.manage',
         SERVICE_MANAGE: 'company.service.manage',
         PARTNER_MANAGE: 'company.partner.manage',
+        STAFF_MANAGE: 'company.staff.manage',
+        SITE_SETTINGS_MANAGE: 'company.siteSettings.manage',
         MANAGE: 'company.manage',
     },
     POST: {
@@ -40,8 +42,22 @@ export const PERMISSIONS = {
         DELETE: 'tag.delete',
         MANAGE: 'tag.manage',
     },
+    CONTENT_VERSION: {
+        READ: 'contentVersion.read',
+        ROLLBACK: 'contentVersion.rollback',
+    },
+    AD: {
+        CREATE: 'ad.create',
+        UPDATE: 'ad.update',
+        DELETE: 'ad.delete',
+        MANAGE: 'ad.manage',
+    },
     USERS: {
         MANAGE: 'users.manage',
+    },
+    ADMIN: {
+        DASHBOARD_READ: 'admin.dashboard.read',
+        MODERATION_READ: 'admin.moderation.read',
     },
 } as const;
 
@@ -63,6 +79,8 @@ export const ALL_PERMISSIONS = [
     PERMISSIONS.COMPANY.PROJECT_MANAGE,
     PERMISSIONS.COMPANY.SERVICE_MANAGE,
     PERMISSIONS.COMPANY.PARTNER_MANAGE,
+    PERMISSIONS.COMPANY.STAFF_MANAGE,
+    PERMISSIONS.COMPANY.SITE_SETTINGS_MANAGE,
     PERMISSIONS.COMPANY.MANAGE,
     PERMISSIONS.POST.CREATE,
     PERMISSIONS.POST.UPDATE,
@@ -77,7 +95,15 @@ export const ALL_PERMISSIONS = [
     PERMISSIONS.TAG.UPDATE,
     PERMISSIONS.TAG.DELETE,
     PERMISSIONS.TAG.MANAGE,
+    PERMISSIONS.CONTENT_VERSION.READ,
+    PERMISSIONS.CONTENT_VERSION.ROLLBACK,
+    PERMISSIONS.AD.CREATE,
+    PERMISSIONS.AD.UPDATE,
+    PERMISSIONS.AD.DELETE,
+    PERMISSIONS.AD.MANAGE,
     PERMISSIONS.USERS.MANAGE,
+    PERMISSIONS.ADMIN.DASHBOARD_READ,
+    PERMISSIONS.ADMIN.MODERATION_READ,
 ] as const;
 
 export type PermissionKey = (typeof ALL_PERMISSIONS)[number];

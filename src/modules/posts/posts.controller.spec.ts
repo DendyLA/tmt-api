@@ -15,6 +15,7 @@ describe('PostsController', () => {
     beforeEach(() => {
         postsService = {
             findForCompanySite: jest.fn(),
+            findOneForCompanySite: jest.fn(),
             create: jest.fn(),
             findAllAdmin: jest.fn(),
             update: jest.fn(),
@@ -31,7 +32,23 @@ describe('PostsController', () => {
         await expect(controller.findForCompanySite('company')).resolves.toEqual([
             post,
         ]);
-        expect(postsService.findForCompanySite).toHaveBeenCalledWith('company');
+        expect(postsService.findForCompanySite).toHaveBeenCalledWith(
+            'company',
+            undefined,
+            undefined,
+        );
+    });
+
+    it('delegates public single company post lookup', async () => {
+        postsService.findOneForCompanySite.mockResolvedValue(post);
+
+        await expect(
+            controller.findOneForCompanySite('company', post.slug),
+        ).resolves.toEqual(post);
+        expect(postsService.findOneForCompanySite).toHaveBeenCalledWith(
+            'company',
+            post.slug,
+        );
     });
 
     it('delegates create/update/publish/remove', async () => {

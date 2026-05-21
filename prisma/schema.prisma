@@ -27,6 +27,8 @@ model User {
   companyMemberships CompanyMember[]
   posts              Post[]
   media              Media[]
+  contentVersions    ContentVersion[]
+  refreshTokens      RefreshToken[]
 }
 
 model Role {
@@ -55,6 +57,22 @@ model RolePermission {
   permission Permission @relation(fields: [permissionId], references: [id])
 
   @@id([roleId, permissionId])
+}
+
+model RefreshToken {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Vacancy {
@@ -109,6 +127,10 @@ model Company {
   partners          Partner[]
   posts             Post[]
   media             Media[]
+  adSpaces          AdSpace[]
+  ads               Ad[]
+  adPlacements      AdPlacement[]
+  siteSettings      CompanySiteSettings?
 }
 
 model CompanyMember {
@@ -129,6 +151,23 @@ model CompanyMember {
   @@unique([companyId, userId])
   @@index([userId])
   @@index([roleId])
+}
+
+model CompanySiteSettings {
+  id String @id @default(uuid())
+
+  companyId String  @unique
+  company   Company @relation(fields: [companyId], references: [id])
+
+  domain    String? @unique
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([domain])
+  @@index([isActive])
 }
 
 model CompanyContact {
@@ -312,6 +351,101 @@ model Media {
   @@index([entityType, entityId])
 }
 
+model ContentVersion {
+  id String @id @default(uuid())
+
+  entityType String
+  entityId   String
+
+  data    Json
+  version Int
+
+  createdBy String?
+  user      User?   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([entityType, entityId, version])
+  @@index([entityType, entityId])
+  @@index([createdBy])
+}
+
+model AdSpace {
+  id String @id @default(uuid())
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  name        String
+  description String?
+  locationKey String
+  sortOrder   Int     @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  placements AdPlacement[]
+
+  @@unique([companyId, locationKey])
+  @@index([companyId])
+}
+
+model Ad {
+  id String @id @default(uuid())
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  title     String
+  type      AdType
+  imageUrl  String?
+  targetUrl String?
+  embedCode String?
+
+  isGlobal  Boolean @default(false)
+  isActive  Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  startDate DateTime?
+  endDate   DateTime?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  placements AdPlacement[]
+
+  @@index([companyId])
+  @@index([isGlobal])
+  @@index([isActive])
+}
+
+model AdPlacement {
+  id String @id @default(uuid())
+
+  adId String
+  ad   Ad     @relation(fields: [adId], references: [id])
+
+  spaceId String
+  space   AdSpace @relation(fields: [spaceId], references: [id])
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id])
+
+  impressions Int @default(0)
+  clicks      Int @default(0)
+  sortOrder   Int @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  @@unique([adId, spaceId])
+  @@index([companyId])
+  @@index([spaceId])
+}
+
 model Tag {
   id String @id @default(uuid())
 
@@ -391,6 +525,12 @@ enum MediaType {
   VIDEO
   DOCUMENT
   OTHER
+}
+
+enum AdType {
+  IMAGE
+  HTML
+  SCRIPT
 }
 
 model VacancyVersion {

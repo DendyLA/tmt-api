@@ -143,6 +143,9 @@ describe('Company profile services', () => {
                 status: ProjectStatus.PUBLISHED,
                 deletedAt: null,
             },
+            include: {
+                tags: { include: { tag: true } },
+            },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
 

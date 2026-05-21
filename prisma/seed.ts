@@ -107,6 +107,16 @@ async function main() {
             },
             {
                 roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.STAFF_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.COMPANY.SITE_SETTINGS_MANAGE].id,
+            },
+            {
+                roleId: admin.id,
                 permissionId: permissionByKey[PERMISSIONS.COMPANY.MANAGE].id,
             },
             {
@@ -160,6 +170,42 @@ async function main() {
             {
                 roleId: admin.id,
                 permissionId: permissionByKey[PERMISSIONS.TAG.MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.CONTENT_VERSION.READ].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.CONTENT_VERSION.ROLLBACK].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.AD.CREATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.AD.UPDATE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.AD.DELETE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId: permissionByKey[PERMISSIONS.AD.MANAGE].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.ADMIN.DASHBOARD_READ].id,
+            },
+            {
+                roleId: admin.id,
+                permissionId:
+                    permissionByKey[PERMISSIONS.ADMIN.MODERATION_READ].id,
             },
             {
                 roleId: user.id,

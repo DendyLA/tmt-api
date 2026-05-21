@@ -10,8 +10,12 @@ import { CompanyPartnersController } from './partners/company-partners.controlle
 import { CompanyPartnersService } from './partners/company-partners.service';
 import { CompanyServicesController } from './services/company-services.controller';
 import { CompanyServicesService } from './services/company-services.service';
+import { CompanySiteSettingsController } from './site-settings/company-site-settings.controller';
+import { CompanySiteSettingsService } from './site-settings/company-site-settings.service';
 import { CompanySocialLinksController } from './social-links/company-social-links.controller';
 import { CompanySocialLinksService } from './social-links/company-social-links.service';
+import { CompanyStaffController } from './staff/company-staff.controller';
+import { CompanyStaffService } from './staff/company-staff.service';
 import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
 
@@ -24,6 +28,8 @@ import { CompaniesService } from './companies.service';
         CompanyProjectsController,
         CompanyServicesController,
         CompanyPartnersController,
+        CompanyStaffController,
+        CompanySiteSettingsController,
     ],
     providers: [
         CompaniesService,
@@ -32,6 +38,8 @@ import { CompaniesService } from './companies.service';
         CompanyProjectsService,
         CompanyServicesService,
         CompanyPartnersService,
+        CompanyStaffService,
+        CompanySiteSettingsService,
     ],
     exports: [
         CompaniesService,
@@ -40,6 +48,8 @@ import { CompaniesService } from './companies.service';
         CompanyProjectsService,
         CompanyServicesService,
         CompanyPartnersService,
+        CompanyStaffService,
+        CompanySiteSettingsService,
     ],
 })
 export class CompaniesModule {}

@@ -8,6 +8,7 @@ import { JwtStrategy } from './strategies/jwt/jwt.service';
 import { DatabaseModule } from '../../database/database.module';
 import { VacancyOwnershipGuard } from './guards/ownership/vacancy-ownership.guard';
 import { PermissionsGuard } from './guards/permissions/permissions.guard';
+import { CompanyAccessGuard } from './guards/company-access/company-access.guard';
 import { PermissionResolverService } from './services/permission-resolver.service';
 
 @Module({
@@ -17,7 +18,10 @@ import { PermissionResolverService } from './services/permission-resolver.servic
             inject: [ConfigService],
             useFactory: (config: ConfigService) => ({
                 secret: config.get<string>('JWT_SECRET'),
-                signOptions: { expiresIn: '7d' },
+                signOptions: {
+                    expiresIn: (config.get<string>('JWT_ACCESS_EXPIRES_IN') ??
+                        '15m') as any,
+                },
             }),
         }),
     ],
@@ -27,12 +31,14 @@ import { PermissionResolverService } from './services/permission-resolver.servic
         JwtStrategy,
         VacancyOwnershipGuard,
         PermissionsGuard,
+        CompanyAccessGuard,
         PermissionResolverService,
     ],
     exports: [
         JwtStrategy,
         VacancyOwnershipGuard,
         PermissionsGuard,
+        CompanyAccessGuard,
         PermissionResolverService,
     ],
 })
