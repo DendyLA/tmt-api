@@ -29,6 +29,10 @@ model User {
   media              Media[]
   contentVersions    ContentVersion[]
   refreshTokens      RefreshToken[]
+
+  @@index([roleId])
+  @@index([isBanned])
+  @@index([createdAt])
 }
 
 model Role {
@@ -37,6 +41,7 @@ model Role {
 
   users          User[]
   companyMembers CompanyMember[]
+  companyInvites CompanyInvite[]
 
   permissions RolePermission[]
 }
@@ -68,6 +73,8 @@ model RefreshToken {
   tokenHash String
   expiresAt DateTime
   revokedAt DateTime?
+  ipAddress String?
+  userAgent String?
 
   createdAt DateTime @default(now())
 
@@ -117,6 +124,7 @@ model Company {
   deletedAt DateTime?
 
   members   CompanyMember[]
+  invites   CompanyInvite[]
   vacancies Vacancy[]
 
   contact           CompanyContact?
@@ -131,6 +139,24 @@ model Company {
   ads               Ad[]
   adPlacements      AdPlacement[]
   siteSettings      CompanySiteSettings?
+  translations      CompanyTranslation[]
+}
+
+model CompanyTranslation {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  locale      Locale
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([companyId, locale])
+  @@index([locale])
 }
 
 model CompanyMember {
@@ -150,6 +176,39 @@ model CompanyMember {
 
   @@unique([companyId, userId])
   @@index([userId])
+  @@index([roleId])
+}
+
+model CompanyInvite {
+  id String @id @default(uuid())
+
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id])
+
+  email String
+
+  roleId String?
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  isOwner Boolean @default(false)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+
+  invitedBy  String?
+  acceptedBy String?
+
+  acceptedAt DateTime?
+  revokedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([companyId, email])
+  @@index([acceptedAt, revokedAt, expiresAt])
+  @@index([email])
+  @@index([expiresAt])
   @@index([roleId])
 }
 
@@ -218,10 +277,28 @@ model Project {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  tags ProjectTag[]
+  tags         ProjectTag[]
+  translations ProjectTranslation[]
 
   @@index([companyId])
   @@index([status])
+}
+
+model ProjectTranslation {
+  id String @id @default(uuid())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id])
+
+  locale      Locale
+  title       String
+  description String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, locale])
+  @@index([locale])
 }
 
 model ServiceCategory {
@@ -235,7 +312,8 @@ model ServiceCategory {
   description String?
   sortOrder   Int     @default(0)
 
-  services Service[]
+  services     Service[]
+  translations ServiceCategoryTranslation[]
 
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -243,6 +321,23 @@ model ServiceCategory {
 
   @@unique([companyId, slug])
   @@index([companyId])
+}
+
+model ServiceCategoryTranslation {
+  id String @id @default(uuid())
+
+  categoryId String
+  category   ServiceCategory @relation(fields: [categoryId], references: [id])
+
+  locale      Locale
+  name        String
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([categoryId, locale])
+  @@index([locale])
 }
 
 model Service {
@@ -262,8 +357,27 @@ model Service {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
+  translations ServiceTranslation[]
+
   @@index([companyId])
   @@index([categoryId])
+}
+
+model ServiceTranslation {
+  id String @id @default(uuid())
+
+  serviceId String
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  locale      Locale
+  title       String
+  description String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([serviceId, locale])
+  @@index([locale])
 }
 
 model Partner {
@@ -311,13 +425,32 @@ model Post {
   updatedAt   DateTime  @updatedAt
   deletedAt   DateTime?
 
-  tags PostTag[]
+  tags         PostTag[]
+  translations PostTranslation[]
 
   @@index([companyId])
   @@index([createdBy])
   @@index([status])
   @@index([type])
   @@index([isGlobal])
+}
+
+model PostTranslation {
+  id String @id @default(uuid())
+
+  postId String
+  post   Post   @relation(fields: [postId], references: [id])
+
+  locale  Locale
+  title   String
+  excerpt String?
+  content String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([postId, locale])
+  @@index([locale])
 }
 
 model Media {
@@ -329,8 +462,15 @@ model Media {
   createdBy String?
   author    User?   @relation(fields: [createdBy], references: [id])
 
-  url  String
-  type MediaType
+  url    String
+  type   MediaType
+  locale Locale?
+
+  mimeType     String?
+  fileName     String?
+  originalName String?
+  size         Int?
+  storage      String?
 
   entityType String?
   entityId   String?
@@ -347,6 +487,7 @@ model Media {
   @@index([companyId])
   @@index([createdBy])
   @@index([type])
+  @@index([locale])
   @@index([isGlobal])
   @@index([entityType, entityId])
 }
@@ -414,11 +555,28 @@ model Ad {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  placements AdPlacement[]
+  placements   AdPlacement[]
+  translations AdTranslation[]
 
   @@index([companyId])
   @@index([isGlobal])
   @@index([isActive])
+}
+
+model AdTranslation {
+  id String @id @default(uuid())
+
+  adId String
+  ad   Ad     @relation(fields: [adId], references: [id])
+
+  locale Locale
+  title  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([adId, locale])
+  @@index([locale])
 }
 
 model AdPlacement {
@@ -525,6 +683,12 @@ enum MediaType {
   VIDEO
   DOCUMENT
   OTHER
+}
+
+enum Locale {
+  EN
+  RU
+  TK
 }
 
 enum AdType {

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 
@@ -13,25 +13,40 @@ export class AuthController {
 
     @Public()
     @Post('register')
-    register(@Body() dto: RegisterDto) {
-        return this.auth.register(dto);
+    register(@Body() dto: RegisterDto, @Req() req: any) {
+        return this.auth.register(dto, req);
     }
 
     @Public()
     @Post('login')
-    login(@Body() dto: LoginDto) {
-        return this.auth.login(dto);
+    login(@Body() dto: LoginDto, @Req() req: any) {
+        return this.auth.login(dto, req);
     }
 
     @Public()
     @Post('refresh')
-    refresh(@Body() dto: RefreshTokenDto) {
-        return this.auth.refresh(dto.refreshToken);
+    refresh(@Body() dto: RefreshTokenDto, @Req() req: any) {
+        return this.auth.refresh(dto.refreshToken, req);
     }
 
     @Public()
     @Post('logout')
     logout(@Body() dto: RefreshTokenDto) {
         return this.auth.logout(dto.refreshToken);
+    }
+
+    @Get('sessions')
+    getSessions(@Req() req: any) {
+        return this.auth.getSessions(req.user.sub);
+    }
+
+    @Delete('sessions/:id')
+    revokeSession(@Req() req: any, @Param('id') id: string) {
+        return this.auth.revokeSession(req.user.sub, id);
+    }
+
+    @Post('logout-all')
+    logoutAll(@Req() req: any) {
+        return this.auth.logoutAll(req.user.sub);
     }
 }

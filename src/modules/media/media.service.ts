@@ -44,6 +44,12 @@ export class MediaService {
                 companyId: dto.isGlobal ? null : dto.companyId,
                 url: storedFile.url,
                 type: storedFile.type,
+                locale: dto.locale,
+                mimeType: storedFile.mimeType,
+                fileName: storedFile.fileName,
+                originalName: storedFile.originalName,
+                size: storedFile.size,
+                storage: storedFile.storage,
                 entityType: dto.entityType,
                 entityId: dto.entityId,
                 isGlobal: dto.isGlobal ?? false,
@@ -85,6 +91,9 @@ export class MediaService {
             deletedAt: null,
             AND: [
                 { OR: [{ isGlobal: true }, { companyId: company.id }] },
+                query.locale
+                    ? { OR: [{ locale: null }, { locale: query.locale }] }
+                    : {},
                 ...(tagFilter ? [{ OR: tagFilter }] : []),
                 ...(query.search ? [this.buildSearchFilter(query.search)] : []),
             ],
@@ -163,6 +172,41 @@ export class MediaService {
 
         this.eventEmitter.emit('media.deleted', { user, media: deleted, req });
         return { success: true };
+    }
+
+    async cleanupDeletedLocalFiles() {
+        const deletedMedia = await this.prisma.media.findMany({
+            where: {
+                deletedAt: { not: null },
+                storage: 'local',
+                fileName: { not: null },
+            },
+            take: 100,
+            orderBy: { deletedAt: 'asc' },
+        });
+
+        let removed = 0;
+        let missing = 0;
+
+        for (const media of deletedMedia) {
+            const didRemove = await this.storage.remove(media.fileName!);
+            if (didRemove) {
+                removed += 1;
+            } else {
+                missing += 1;
+            }
+
+            await this.prisma.media.update({
+                where: { id: media.id },
+                data: { storage: 'local_deleted' },
+            });
+        }
+
+        return {
+            scanned: deletedMedia.length,
+            removed,
+            missing,
+        };
     }
 
     private async findActiveMedia(id: string) {

@@ -2,6 +2,7 @@ import { Module, MiddlewareConsumer } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -22,6 +23,7 @@ import { SiteModule } from './modules/site/site.module';
 import { AdsModule } from './modules/ads/ads.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { MaintenanceModule } from './modules/maintenance/maintenance.module';
 import { AuditLogMiddleware } from './common/middleware/audit-log/audit-log.middleware';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
@@ -31,6 +33,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         UsersModule,
         AuthModule,
         ConfigModule.forRoot({ isGlobal: true }),
+        ScheduleModule.forRoot(),
         ThrottlerModule.forRoot([
             {
                 ttl: 60_000,
@@ -47,6 +50,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         AdsModule,
         AdminModule,
         AuditLogModule,
+        MaintenanceModule,
         EventEmitterModule.forRoot(),
     ],
     controllers: [AppController],

@@ -35,6 +35,7 @@ import { PermissionResolverService } from './services/permission-resolver.servic
         PermissionResolverService,
     ],
     exports: [
+        AuthService,
         JwtStrategy,
         VacancyOwnershipGuard,
         PermissionsGuard,

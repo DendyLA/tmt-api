@@ -6,9 +6,11 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { LocaleQueryDto } from '../../common/dto/locale-query.dto';
 import { PERMISSIONS } from '../auth/constants/permissions.constants';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -32,15 +34,19 @@ export class CompaniesController {
     @Public()
     @ApiOperation({ summary: 'List public companies' })
     @Get()
-    findAll() {
-        return this.companiesService.findAll();
+    findAll(@Query() query?: LocaleQueryDto) {
+        return query?.locale
+            ? this.companiesService.findAll(query.locale)
+            : this.companiesService.findAll();
     }
 
     @Public()
     @ApiOperation({ summary: 'Get public company by slug' })
     @Get(':slug')
-    findOneBySlug(@Param('slug') slug: string) {
-        return this.companiesService.findOneBySlug(slug);
+    findOneBySlug(@Param('slug') slug: string, @Query() query?: LocaleQueryDto) {
+        return query?.locale
+            ? this.companiesService.findOneBySlug(slug, query.locale)
+            : this.companiesService.findOneBySlug(slug);
     }
 
     @ApiBearerAuth()

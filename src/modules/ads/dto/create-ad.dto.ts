@@ -1,6 +1,9 @@
 import { AdType } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUrl, MaxLength, Min, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUrl, MaxLength, Min, MinLength, ValidateNested } from 'class-validator';
+import { AdTranslationDto } from '../../../common/dto/content-translation.dto';
+import { HasUniqueLocales } from '../../../common/validators/unique-locales.validator';
 
 export class CreateAdDto {
     @ApiPropertyOptional({ example: 'company-id' })
@@ -60,4 +63,12 @@ export class CreateAdDto {
     @IsOptional()
     @IsDateString()
     endDate?: string;
+
+    @ApiPropertyOptional({ type: [AdTranslationDto] })
+    @IsOptional()
+    @IsArray()
+    @HasUniqueLocales()
+    @ValidateNested({ each: true })
+    @Type(() => AdTranslationDto)
+    translations?: AdTranslationDto[];
 }

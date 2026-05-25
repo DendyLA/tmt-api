@@ -1,7 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Locale } from '@prisma/client';
 import { Transform } from 'class-transformer';
 import {
     IsBoolean,
+    IsEnum,
     IsInt,
     IsOptional,
     IsString,
@@ -26,6 +28,11 @@ export class UploadMediaDto {
     @IsOptional()
     @IsString()
     companyId?: string;
+
+    @ApiPropertyOptional({ enum: Locale, example: Locale.RU })
+    @IsOptional()
+    @IsEnum(Locale)
+    locale?: Locale;
 
     @ApiPropertyOptional({ example: 'post' })
     @IsOptional()

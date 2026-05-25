@@ -160,6 +160,7 @@ describe('PostsService', () => {
                 ],
             },
             include: {
+                translations: true,
                 tags: { include: { tag: true } },
             },
             orderBy: [

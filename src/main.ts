@@ -6,28 +6,27 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
 import helmet from 'helmet';
 import { json, urlencoded } from 'express';
+import { envFlag, validateEnvironment } from './config/env.validation';
 
 async function bootstrap() {
+    validateEnvironment();
+
     const app = await NestFactory.create<NestExpressApplication>(AppModule);
+    app.set('trust proxy', envFlag(process.env.TRUST_PROXY));
 
-    const config = new DocumentBuilder()
-        .setTitle('TMT API')
-        .setDescription(
-            `
-			TMT.TM — платформа для компаний.
-			
-			Включает управление компаниями, вакансиями, услугами, проектами, 
-			постами, медиа, рекламными блоками и партнёрами.
-			
-			Аутентификация: Bearer JWT.
-		`,
-        )
-        .setVersion('1.0')
-        .addBearerAuth()
-        .build();
+    if (envFlag(process.env.ENABLE_SWAGGER, process.env.NODE_ENV !== 'production')) {
+        const config = new DocumentBuilder()
+            .setTitle('TMT API')
+            .setDescription(
+                'TMT.TM backend API for companies, vacancies, posts, media, ads, moderation, and JWT authentication.',
+            )
+            .setVersion('1.0')
+            .addBearerAuth()
+            .build();
 
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
+        const document = SwaggerModule.createDocument(app, config);
+        SwaggerModule.setup('api/docs', app, document);
+    }
 
     app.useGlobalPipes(
         new ValidationPipe({
@@ -38,7 +37,12 @@ async function bootstrap() {
     );
     app.use(helmet());
     app.use(json({ limit: process.env.REQUEST_BODY_LIMIT ?? '1mb' }));
-    app.use(urlencoded({ extended: true, limit: process.env.REQUEST_BODY_LIMIT ?? '1mb' }));
+    app.use(
+        urlencoded({
+            extended: true,
+            limit: process.env.REQUEST_BODY_LIMIT ?? '1mb',
+        }),
+    );
     app.enableCors({
         origin: resolveCorsOrigins(),
         credentials: true,
@@ -53,7 +57,7 @@ bootstrap();
 
 function resolveCorsOrigins() {
     const origins = process.env.CORS_ORIGINS;
-    if (!origins) return true;
+    if (!origins) return process.env.NODE_ENV === 'production' ? false : true;
 
     return origins
         .split(',')

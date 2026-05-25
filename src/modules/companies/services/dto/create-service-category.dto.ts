@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+    IsArray,
     IsInt,
     IsOptional,
     IsString,
@@ -7,7 +9,10 @@ import {
     MaxLength,
     Min,
     MinLength,
+    ValidateNested,
 } from 'class-validator';
+import { NameDescriptionTranslationDto } from '../../../../common/dto/content-translation.dto';
+import { HasUniqueLocales } from '../../../../common/validators/unique-locales.validator';
 
 export class CreateServiceCategoryDto {
     @ApiProperty({ example: 'Digital Products' })
@@ -34,4 +39,12 @@ export class CreateServiceCategoryDto {
     @IsInt()
     @Min(0)
     sortOrder?: number;
+
+    @ApiPropertyOptional({ type: [NameDescriptionTranslationDto] })
+    @IsOptional()
+    @IsArray()
+    @HasUniqueLocales()
+    @ValidateNested({ each: true })
+    @Type(() => NameDescriptionTranslationDto)
+    translations?: NameDescriptionTranslationDto[];
 }

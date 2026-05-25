@@ -40,8 +40,11 @@ export class PostsController {
     findOneForCompanySite(
         @Param('slug') slug: string,
         @Param('postSlug') postSlug: string,
+        @Query() query?: PaginationQueryDto,
     ) {
-        return this.postsService.findOneForCompanySite(slug, postSlug);
+        return query?.locale
+            ? this.postsService.findOneForCompanySite(slug, postSlug, query.locale)
+            : this.postsService.findOneForCompanySite(slug, postSlug);
     }
 
     @ApiBearerAuth()

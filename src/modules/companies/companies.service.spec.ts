@@ -122,6 +122,7 @@ describe('CompaniesService', () => {
 
         expect(prisma.company.findMany).toHaveBeenCalledWith({
             where: { deletedAt: null },
+            include: { translations: true },
             orderBy: { createdAt: 'desc' },
         });
     });
@@ -138,6 +139,7 @@ describe('CompaniesService', () => {
                 slug: company.slug,
                 deletedAt: null,
             },
+            include: { translations: true },
         });
     });
 

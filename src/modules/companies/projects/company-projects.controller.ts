@@ -10,6 +10,7 @@ import {
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { PaginationQueryDto } from '../../../common/dto/pagination-query.dto';
 import { PERMISSIONS } from '../../auth/constants/permissions.constants';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { Public } from '../../auth/decorators/public.decorator';
@@ -28,8 +29,13 @@ export class CompanyProjectsController {
     findPublishedByCompanySlug(
         @Param('slug') slug: string,
         @Query('tag') tagSlug?: string,
+        @Query() query?: PaginationQueryDto,
     ) {
-        return this.projectsService.findPublishedByCompanySlug(slug, tagSlug);
+        return this.projectsService.findPublishedByCompanySlug(
+            slug,
+            tagSlug,
+            query?.locale,
+        );
     }
 
     @ApiBearerAuth()

@@ -1,18 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { AuditListener } from './audit.listener';
 
 describe('AuditListener', () => {
-    let provider: AuditListener;
+    let audit: { log: jest.Mock };
+    let listener: AuditListener;
 
-    beforeEach(async () => {
-        const module: TestingModule = await Test.createTestingModule({
-            providers: [AuditListener],
-        }).compile();
-
-        provider = module.get<AuditListener>(AuditListener);
+    beforeEach(() => {
+        audit = { log: jest.fn() };
+        listener = new AuditListener(audit as any);
     });
 
-    it('should be defined', () => {
-        expect(provider).toBeDefined();
+    it('logs vacancy creation event', async () => {
+        await listener.handleCreated({
+            userId: 'user-1',
+            vacancy: { id: 'vacancy-1' },
+            req: {
+                ip: '127.0.0.1',
+                headers: { 'user-agent': 'jest' },
+            },
+        });
+
+        expect(audit.log).toHaveBeenCalledWith({
+            userId: 'user-1',
+            action: 'VACANCY_CREATED',
+            entityType: 'vacancy',
+            entityId: 'vacancy-1',
+            ipAddress: '127.0.0.1',
+            userAgent: 'jest',
+        });
     });
 });

@@ -1,6 +1,8 @@
 import { PostStatus, PostType } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+    IsArray,
     IsBoolean,
     IsEnum,
     IsInt,
@@ -10,7 +12,10 @@ import {
     MaxLength,
     Min,
     MinLength,
+    ValidateNested,
 } from 'class-validator';
+import { PostTranslationDto } from '../../../common/dto/content-translation.dto';
+import { HasUniqueLocales } from '../../../common/validators/unique-locales.validator';
 
 export class CreatePostDto {
     @ApiPropertyOptional({ example: 'company-id' })
@@ -62,4 +67,12 @@ export class CreatePostDto {
     @IsInt()
     @Min(0)
     sortOrder?: number;
+
+    @ApiPropertyOptional({ type: [PostTranslationDto] })
+    @IsOptional()
+    @IsArray()
+    @HasUniqueLocales()
+    @ValidateNested({ each: true })
+    @Type(() => PostTranslationDto)
+    translations?: PostTranslationDto[];
 }

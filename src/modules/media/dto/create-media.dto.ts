@@ -1,4 +1,4 @@
-import { MediaType } from '@prisma/client';
+import { Locale, MediaType } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
     IsBoolean,
@@ -25,6 +25,11 @@ export class CreateMediaDto {
     @ApiProperty({ enum: MediaType })
     @IsEnum(MediaType)
     type!: MediaType;
+
+    @ApiPropertyOptional({ enum: Locale, example: Locale.RU })
+    @IsOptional()
+    @IsEnum(Locale)
+    locale?: Locale;
 
     @ApiPropertyOptional({ example: 'post' })
     @IsOptional()

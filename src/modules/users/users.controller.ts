@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
 
 import { UseGuards, Req } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt/jwt.guard';
@@ -13,7 +14,7 @@ export class UsersController {
     create(@Body() dto: CreateUserDto) {
         return this.usersService.create(dto);
     }
-
+	@ApiBearerAuth()
     @Get()
     findAll() {
         return this.usersService.findAll();

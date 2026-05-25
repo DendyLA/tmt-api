@@ -15,6 +15,7 @@ import { CompanySiteSettingsService } from './site-settings/company-site-setting
 import { CompanySocialLinksController } from './social-links/company-social-links.controller';
 import { CompanySocialLinksService } from './social-links/company-social-links.service';
 import { CompanyStaffController } from './staff/company-staff.controller';
+import { CompanyStaffInviteListener } from './staff/company-staff-invite.listener';
 import { CompanyStaffService } from './staff/company-staff.service';
 import { CompaniesController } from './companies.controller';
 import { CompaniesService } from './companies.service';
@@ -39,6 +40,7 @@ import { CompaniesService } from './companies.service';
         CompanyServicesService,
         CompanyPartnersService,
         CompanyStaffService,
+        CompanyStaffInviteListener,
         CompanySiteSettingsService,
     ],
     exports: [

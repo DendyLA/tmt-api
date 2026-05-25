@@ -444,4 +444,36 @@ export class AuditListener {
             userAgent: payload.req?.headers?.['user-agent'],
         });
     }
+
+    @OnEvent('admin.user.banned')
+    async handleAdminUserBanned(payload: any) {
+        await this.audit.log({
+            userId: payload.user?.sub,
+            action: 'USER_BANNED',
+            entityType: 'user',
+            entityId: payload.after.id,
+            metadata: {
+                before: payload.before,
+                after: payload.after,
+            },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
+
+    @OnEvent('admin.user.unbanned')
+    async handleAdminUserUnbanned(payload: any) {
+        await this.audit.log({
+            userId: payload.user?.sub,
+            action: 'USER_UNBANNED',
+            entityType: 'user',
+            entityId: payload.after.id,
+            metadata: {
+                before: payload.before,
+                after: payload.after,
+            },
+            ipAddress: payload.req?.ip,
+            userAgent: payload.req?.headers?.['user-agent'],
+        });
+    }
 }

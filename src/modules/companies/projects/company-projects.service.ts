@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Prisma, ProjectStatus } from '@prisma/client';
+import { Locale, Prisma, ProjectStatus } from '@prisma/client';
 import { PrismaService } from '../../../database/prisma/prisma.service';
+import { localizeEntities } from '../../../common/utils/translation.util';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 
@@ -12,10 +13,14 @@ export class CompanyProjectsService {
         private readonly eventEmitter: EventEmitter2,
     ) {}
 
-    async findPublishedByCompanySlug(slug: string, tagSlug?: string) {
+    async findPublishedByCompanySlug(
+        slug: string,
+        tagSlug?: string,
+        locale?: Locale,
+    ) {
         const company = await this.findActiveCompanyBySlug(slug);
 
-        return this.prisma.project.findMany({
+        const projects = await this.prisma.project.findMany({
             where: {
                 companyId: company.id,
                 status: ProjectStatus.PUBLISHED,
@@ -23,10 +28,13 @@ export class CompanyProjectsService {
                 ...(tagSlug ? this.buildTagFilter(tagSlug) : {}),
             },
             include: {
+                translations: true,
                 tags: { include: { tag: true } },
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
+
+        return localizeEntities(projects, locale);
     }
 
     async create(
@@ -35,13 +43,18 @@ export class CompanyProjectsService {
         dto: CreateProjectDto,
         req?: any,
     ) {
+        const { translations, ...projectData } = dto;
         await this.ensureActiveCompany(companyId);
 
         const project = await this.prisma.project.create({
             data: {
-                ...dto,
+                ...projectData,
                 companyId,
+                translations: translations?.length
+                    ? { create: translations }
+                    : undefined,
             },
+            include: { translations: true },
         });
 
         this.eventEmitter.emit('company.project.created', {
@@ -54,12 +67,16 @@ export class CompanyProjectsService {
     }
 
     async update(id: string, user: any, dto: UpdateProjectDto, req?: any) {
+        const { translations, ...projectData } = dto;
         const project = await this.findActiveProject(id);
 
         const updated = await this.prisma.project.update({
             where: { id },
-            data: dto,
+            data: projectData,
+            include: { translations: true },
         });
+
+        await this.upsertTranslations(id, translations);
 
         this.eventEmitter.emit('company.project.updated', {
             user,
@@ -69,6 +86,28 @@ export class CompanyProjectsService {
         });
 
         return updated;
+    }
+
+    private async upsertTranslations(
+        projectId: string,
+        translations?: CreateProjectDto['translations'],
+    ) {
+        if (!translations) return;
+
+        await Promise.all(
+            translations.map((translation) =>
+                this.prisma.projectTranslation.upsert({
+                    where: {
+                        projectId_locale: {
+                            projectId,
+                            locale: translation.locale,
+                        },
+                    },
+                    update: translation,
+                    create: { ...translation, projectId },
+                }),
+            ),
+        );
     }
 
     async remove(id: string, user: any, req?: any) {

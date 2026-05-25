@@ -5,7 +5,9 @@ import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 import {
     ALL_PERMISSIONS,
-    PERMISSIONS,
+    PERMISSION_DEFINITIONS,
+    ROLE_NAMES,
+    ROLE_PERMISSION_MATRIX,
 } from '../src/modules/auth/constants/permissions.constants'
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
@@ -13,213 +15,46 @@ const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-    const [superadmin, admin, user] = await Promise.all([
-        prisma.role.upsert({
-            where: { name: 'superadmin' },
-            update: {},
-            create: { name: 'superadmin' },
-        }),
-        prisma.role.upsert({
-            where: { name: 'admin' },
-            update: {},
-            create: { name: 'admin' },
-        }),
-        prisma.role.upsert({
-            where: { name: 'user' },
-            update: {},
-            create: { name: 'user' },
-        }),
-    ])
-
-    const permissionRecords = await Promise.all(
-        ALL_PERMISSIONS.map((key) =>
-            prisma.permission.upsert({
-                where: { key },
+    const roles = await Promise.all(
+        Object.keys(ROLE_PERMISSION_MATRIX).map((name) =>
+            prisma.role.upsert({
+                where: { name },
                 update: {},
-                create: { key },
+                create: { name },
             }),
         ),
+    )
+
+    const permissionRecords = await Promise.all(
+        ALL_PERMISSIONS.map((key) => {
+            const definition = PERMISSION_DEFINITIONS[key]
+
+            return prisma.permission.upsert({
+                where: { key },
+                update: { description: definition.description },
+                create: { key, description: definition.description },
+            })
+        }),
     )
 
     const permissionByKey = Object.fromEntries(
         permissionRecords.map((permission) => [permission.key, permission]),
     )
 
+    const roleByName = Object.fromEntries(roles.map((role) => [role.name, role]))
+
+    await prisma.rolePermission.deleteMany({
+        where: { roleId: { in: roles.map((role) => role.id) } },
+    })
+
     await prisma.rolePermission.createMany({
-        data: [
-            ...ALL_PERMISSIONS.map((key) => ({
-                roleId: superadmin.id,
-                permissionId: permissionByKey[key].id,
-            })),
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.VACANCY.APPROVE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.VACANCY.REJECT].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.VACANCY.ARCHIVE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.VACANCY.MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.COMPANY.CREATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.COMPANY.UPDATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.COMPANY.DELETE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.CONTACT_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.SOCIAL_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.PROJECT_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.SERVICE_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.PARTNER_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.STAFF_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.COMPANY.SITE_SETTINGS_MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.COMPANY.MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.POST.CREATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.POST.UPDATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.POST.DELETE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.POST.PUBLISH].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.POST.MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.MEDIA.CREATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.MEDIA.UPDATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.MEDIA.DELETE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.MEDIA.MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.TAG.CREATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.TAG.UPDATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.TAG.DELETE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.TAG.MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.CONTENT_VERSION.READ].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.CONTENT_VERSION.ROLLBACK].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.AD.CREATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.AD.UPDATE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.AD.DELETE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId: permissionByKey[PERMISSIONS.AD.MANAGE].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.ADMIN.DASHBOARD_READ].id,
-            },
-            {
-                roleId: admin.id,
-                permissionId:
-                    permissionByKey[PERMISSIONS.ADMIN.MODERATION_READ].id,
-            },
-            {
-                roleId: user.id,
-                permissionId: permissionByKey[PERMISSIONS.VACANCY.CREATE].id,
-            },
-            {
-                roleId: user.id,
-                permissionId: permissionByKey[PERMISSIONS.VACANCY.UPDATE].id,
-            },
-            {
-                roleId: user.id,
-                permissionId: permissionByKey[PERMISSIONS.VACANCY.DELETE].id,
-            },
-        ],
+        data: Object.entries(ROLE_PERMISSION_MATRIX).flatMap(
+            ([roleName, permissionKeys]) =>
+                permissionKeys.map((key) => ({
+                    roleId: roleByName[roleName].id,
+                    permissionId: permissionByKey[key].id,
+                })),
+        ),
         skipDuplicates: true,
     })
 
@@ -232,7 +67,7 @@ async function main() {
             name: 'superadmin',
             email: 'd.atayev@tmt.tm',
             password: hashedPassword,
-            roleId: superadmin.id,
+            roleId: roleByName[ROLE_NAMES.SUPERADMIN].id,
         },
     })
 

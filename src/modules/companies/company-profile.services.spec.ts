@@ -144,6 +144,7 @@ describe('Company profile services', () => {
                 deletedAt: null,
             },
             include: {
+                translations: true,
                 tags: { include: { tag: true } },
             },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],

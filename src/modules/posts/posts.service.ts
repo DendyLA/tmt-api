@@ -4,7 +4,7 @@ import {
     NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { PostStatus, Prisma } from '@prisma/client';
+import { Locale, PostStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import {
     getPagination,
@@ -14,6 +14,7 @@ import {
 import { ContentVersionsService } from '../content-versions/content-versions.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { localizeEntity, localizeEntities } from '../../common/utils/translation.util';
 
 @Injectable()
 export class PostsService {
@@ -24,17 +25,22 @@ export class PostsService {
     ) {}
 
     async create(user: any, dto: CreatePostDto, req?: any) {
+        const { translations, ...postData } = dto;
         await this.ensureSlugAvailable(dto.slug);
         await this.validateScope(dto.isGlobal ?? false, dto.companyId);
 
         const post = await this.prisma.post.create({
             data: {
-                ...dto,
+                ...postData,
                 companyId: dto.isGlobal ? null : dto.companyId,
                 createdBy: user.sub,
                 publishedAt:
                     dto.status === PostStatus.PUBLISHED ? new Date() : null,
+                ...(translations?.length
+                    ? { translations: { create: translations } }
+                    : {}),
             },
+            ...(translations?.length ? { include: { translations: true } } : {}),
         });
 
         this.eventEmitter.emit('post.created', { user, post, req });
@@ -71,6 +77,7 @@ export class PostsService {
             this.prisma.post.findMany({
                 where,
                 include: {
+                    translations: true,
                     tags: { include: { tag: true } },
                 },
                 orderBy: [
@@ -84,10 +91,19 @@ export class PostsService {
             this.prisma.post.count({ where }),
         ]);
 
-        return paginatedResponse(data, total, page, limit);
+        return paginatedResponse(
+            localizeEntities(data, query.locale),
+            total,
+            page,
+            limit,
+        );
     }
 
-    async findOneForCompanySite(companySlug: string, postSlug: string) {
+    async findOneForCompanySite(
+        companySlug: string,
+        postSlug: string,
+        locale?: Locale,
+    ) {
         const company = await this.prisma.company.findFirst({
             where: { slug: companySlug, deletedAt: null },
             select: { id: true },
@@ -106,6 +122,7 @@ export class PostsService {
             },
             include: {
                 company: true,
+                translations: true,
                 tags: { include: { tag: true } },
             },
         });
@@ -114,7 +131,7 @@ export class PostsService {
             throw new NotFoundException('Post not found');
         }
 
-        return post;
+        return localizeEntity(post, locale);
     }
 
     async findAllAdmin(query: PaginationQueryDto = {}) {
@@ -128,11 +145,12 @@ export class PostsService {
             this.prisma.post.findMany({
                 where,
                 include: {
-                    company: true,
-                    author: {
-                        select: { id: true, name: true, email: true },
-                    },
-                    tags: { include: { tag: true } },
+                company: true,
+                author: {
+                    select: { id: true, name: true, email: true },
+                },
+                translations: true,
+                tags: { include: { tag: true } },
                 },
                 orderBy: [{ createdAt: 'desc' }],
                 skip,
@@ -145,7 +163,8 @@ export class PostsService {
     }
 
     async update(id: string, user: any, dto: UpdatePostDto, req?: any) {
-        const post = await this.findActivePost(id);
+        const { translations, ...postData } = dto;
+        const post = await this.findActivePostWithTranslations(id);
         const nextIsGlobal = dto.isGlobal ?? post.isGlobal;
         const nextCompanyId =
             dto.companyId !== undefined ? dto.companyId : post.companyId;
@@ -160,11 +179,14 @@ export class PostsService {
         const updated = await this.prisma.post.update({
             where: { id },
             data: {
-                ...dto,
+                ...postData,
                 companyId: nextIsGlobal ? null : nextCompanyId,
                 publishedAt: this.resolvePublishedAt(post.status, dto.status, post.publishedAt),
             },
+            include: { translations: true },
         });
+
+        await this.upsertTranslations(id, translations);
 
         this.eventEmitter.emit('post.updated', {
             user,
@@ -173,11 +195,11 @@ export class PostsService {
             req,
         });
 
-        return updated;
+        return this.findActivePostWithTranslations(id);
     }
 
     async publish(id: string, user: any, req?: any) {
-        const post = await this.findActivePost(id);
+        const post = await this.findActivePostWithTranslations(id);
         await this.contentVersions.createVersion('post', post.id, post, user.sub);
 
         const updated = await this.prisma.post.update({
@@ -199,7 +221,7 @@ export class PostsService {
     }
 
     async rollback(id: string, versionId: string, user: any, req?: any) {
-        const post = await this.findActivePost(id);
+        const post = await this.findActivePostWithTranslations(id);
         const version = await this.contentVersions.findOne(versionId);
 
         if (version.entityType !== 'post' || version.entityId !== id) {
@@ -209,6 +231,8 @@ export class PostsService {
         await this.contentVersions.createVersion('post', post.id, post, user.sub);
 
         const data = version.data as any;
+        const translations = data.translations ?? [];
+        await this.prisma.postTranslation.deleteMany({ where: { postId: id } });
         const updated = await this.prisma.post.update({
             where: { id },
             data: {
@@ -223,7 +247,18 @@ export class PostsService {
                 sortOrder: data.sortOrder,
                 publishedAt: data.publishedAt,
                 deletedAt: data.deletedAt,
+                translations: translations.length
+                    ? {
+                          create: translations.map((item: any) => ({
+                              locale: item.locale,
+                              title: item.title,
+                              excerpt: item.excerpt,
+                              content: item.content,
+                          })),
+                      }
+                    : undefined,
             },
+            include: { translations: true },
         });
 
         this.eventEmitter.emit('post.rollback', {
@@ -262,6 +297,41 @@ export class PostsService {
         }
 
         return post;
+    }
+
+    private async findActivePostWithTranslations(id: string) {
+        const post = await this.prisma.post.findUnique({
+            where: { id },
+            include: { translations: true },
+        });
+
+        if (!post || post.deletedAt) {
+            throw new NotFoundException('Post not found');
+        }
+
+        return post;
+    }
+
+    private async upsertTranslations(
+        postId: string,
+        translations?: CreatePostDto['translations'],
+    ) {
+        if (!translations) return;
+
+        await Promise.all(
+            translations.map((translation) =>
+                this.prisma.postTranslation.upsert({
+                    where: {
+                        postId_locale: {
+                            postId,
+                            locale: translation.locale,
+                        },
+                    },
+                    update: translation,
+                    create: { ...translation, postId },
+                }),
+            ),
+        );
     }
 
     private async ensureSlugAvailable(slug: string, currentPostId?: string) {

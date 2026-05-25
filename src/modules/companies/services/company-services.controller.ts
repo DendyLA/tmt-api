@@ -6,9 +6,11 @@ import {
     Param,
     Patch,
     Post,
+    Query,
     Req,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { LocaleQueryDto } from '../../../common/dto/locale-query.dto';
 import { PERMISSIONS } from '../../auth/constants/permissions.constants';
 import { Permissions } from '../../auth/decorators/permissions.decorator';
 import { Public } from '../../auth/decorators/public.decorator';
@@ -26,15 +28,27 @@ export class CompanyServicesController {
     @Public()
     @ApiOperation({ summary: 'Get service categories by company slug' })
     @Get('companies/:slug/service-categories')
-    findCategoriesByCompanySlug(@Param('slug') slug: string) {
-        return this.companyServices.findCategoriesByCompanySlug(slug);
+    findCategoriesByCompanySlug(
+        @Param('slug') slug: string,
+        @Query() query: LocaleQueryDto,
+    ) {
+        return this.companyServices.findCategoriesByCompanySlug(
+            slug,
+            query.locale,
+        );
     }
 
     @Public()
     @ApiOperation({ summary: 'Get services by company slug' })
     @Get('companies/:slug/services')
-    findServicesByCompanySlug(@Param('slug') slug: string) {
-        return this.companyServices.findServicesByCompanySlug(slug);
+    findServicesByCompanySlug(
+        @Param('slug') slug: string,
+        @Query() query: LocaleQueryDto,
+    ) {
+        return this.companyServices.findServicesByCompanySlug(
+            slug,
+            query.locale,
+        );
     }
 
     @ApiBearerAuth()

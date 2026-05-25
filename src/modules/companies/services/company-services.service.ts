@@ -1,5 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Locale } from '@prisma/client';
+import {
+    localizeEntities,
+    resolveTranslation,
+} from '../../../common/utils/translation.util';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { CreateCompanyServiceDto } from './dto/create-company-service.dto';
 import { CreateServiceCategoryDto } from './dto/create-service-category.dto';
@@ -13,31 +18,58 @@ export class CompanyServicesService {
         private readonly eventEmitter: EventEmitter2,
     ) {}
 
-    async findCategoriesByCompanySlug(slug: string) {
+    async findCategoriesByCompanySlug(slug: string, locale?: Locale) {
         const company = await this.findActiveCompanyBySlug(slug);
 
-        return this.prisma.serviceCategory.findMany({
+        const categories = await this.prisma.serviceCategory.findMany({
             where: { companyId: company.id, deletedAt: null },
+            include: { translations: true },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
+
+        return localizeEntities(categories, locale);
     }
 
-    async findServicesByCompanySlug(slug: string) {
+    async findServicesByCompanySlug(slug: string, locale?: Locale) {
         const company = await this.findActiveCompanyBySlug(slug);
 
-        return this.prisma.service.findMany({
+        const services = await this.prisma.service.findMany({
             where: { companyId: company.id, deletedAt: null },
-            include: { category: true },
+            include: {
+                translations: true,
+                category: { include: { translations: true } },
+            },
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         });
+
+        return localizeEntities(services, locale).map((service) => ({
+            ...service,
+            category: service.category
+                ? {
+                      ...service.category,
+                      translation: resolveTranslation(
+                          service.category.translations,
+                          locale,
+                      ),
+                  }
+                : null,
+        }));
     }
 
     async createCategory(companyId: string, user: any, dto: CreateServiceCategoryDto, req?: any) {
+        const { translations, ...categoryData } = dto;
         await this.ensureActiveCompany(companyId);
         await this.ensureCategorySlugAvailable(companyId, dto.slug);
 
         const category = await this.prisma.serviceCategory.create({
-            data: { ...dto, companyId },
+            data: {
+                ...categoryData,
+                companyId,
+                translations: translations?.length
+                    ? { create: translations }
+                    : undefined,
+            },
+            include: { translations: true },
         });
 
         this.eventEmitter.emit('company.serviceCategory.created', {
@@ -50,6 +82,7 @@ export class CompanyServicesService {
     }
 
     async updateCategory(id: string, user: any, dto: UpdateServiceCategoryDto, req?: any) {
+        const { translations, ...categoryData } = dto;
         const category = await this.findActiveCategory(id);
 
         if (dto.slug && dto.slug !== category.slug) {
@@ -58,8 +91,11 @@ export class CompanyServicesService {
 
         const updated = await this.prisma.serviceCategory.update({
             where: { id },
-            data: dto,
+            data: categoryData,
+            include: { translations: true },
         });
+
+        await this.upsertCategoryTranslations(id, translations);
 
         this.eventEmitter.emit('company.serviceCategory.updated', {
             user,
@@ -89,11 +125,19 @@ export class CompanyServicesService {
     }
 
     async createService(companyId: string, user: any, dto: CreateCompanyServiceDto, req?: any) {
+        const { translations, ...serviceData } = dto;
         await this.ensureActiveCompany(companyId);
         await this.ensureCategoryBelongsToCompany(companyId, dto.categoryId);
 
         const service = await this.prisma.service.create({
-            data: { ...dto, companyId },
+            data: {
+                ...serviceData,
+                companyId,
+                translations: translations?.length
+                    ? { create: translations }
+                    : undefined,
+            },
+            include: { translations: true },
         });
 
         this.eventEmitter.emit('company.service.created', {
@@ -106,13 +150,17 @@ export class CompanyServicesService {
     }
 
     async updateService(id: string, user: any, dto: UpdateCompanyServiceDto, req?: any) {
+        const { translations, ...serviceData } = dto;
         const service = await this.findActiveService(id);
         await this.ensureCategoryBelongsToCompany(service.companyId, dto.categoryId);
 
         const updated = await this.prisma.service.update({
             where: { id },
-            data: dto,
+            data: serviceData,
+            include: { translations: true },
         });
+
+        await this.upsertServiceTranslations(id, translations);
 
         this.eventEmitter.emit('company.service.updated', {
             user,
@@ -122,6 +170,50 @@ export class CompanyServicesService {
         });
 
         return updated;
+    }
+
+    private async upsertCategoryTranslations(
+        categoryId: string,
+        translations?: CreateServiceCategoryDto['translations'],
+    ) {
+        if (!translations) return;
+
+        await Promise.all(
+            translations.map((translation) =>
+                this.prisma.serviceCategoryTranslation.upsert({
+                    where: {
+                        categoryId_locale: {
+                            categoryId,
+                            locale: translation.locale,
+                        },
+                    },
+                    update: translation,
+                    create: { ...translation, categoryId },
+                }),
+            ),
+        );
+    }
+
+    private async upsertServiceTranslations(
+        serviceId: string,
+        translations?: CreateCompanyServiceDto['translations'],
+    ) {
+        if (!translations) return;
+
+        await Promise.all(
+            translations.map((translation) =>
+                this.prisma.serviceTranslation.upsert({
+                    where: {
+                        serviceId_locale: {
+                            serviceId,
+                            locale: translation.locale,
+                        },
+                    },
+                    update: translation,
+                    create: { ...translation, serviceId },
+                }),
+            ),
+        );
     }
 
     async removeService(id: string, user: any, req?: any) {

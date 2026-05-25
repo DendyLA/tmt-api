@@ -30,7 +30,7 @@ export class AuthService {
         private jwt: JwtService,
     ) {}
 
-    async register(dto: RegisterDto) {
+    async register(dto: RegisterDto, req?: any) {
         const exists = await this.prisma.user.findUnique({
             where: { email: dto.email },
         });
@@ -69,10 +69,10 @@ export class AuthService {
             },
         });
 
-        return this.issueTokens(user);
+        return this.issueTokens(user, req);
     }
 
-    async login(dto: LoginDto) {
+    async login(dto: LoginDto, req?: any) {
         const user = await this.prisma.user.findUnique({
             where: { email: dto.email },
             include: {
@@ -93,10 +93,10 @@ export class AuthService {
         if (!isValid) throw new UnauthorizedException('Invalid credentials');
         if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
-        return this.issueTokens(user);
+        return this.issueTokens(user, req);
     }
 
-    async refresh(refreshToken: string) {
+    async refresh(refreshToken: string, req?: any) {
         const activeTokens = await this.prisma.refreshToken.findMany({
             where: {
                 revokedAt: null,
@@ -136,7 +136,7 @@ export class AuthService {
             data: { revokedAt: new Date() },
         });
 
-        return this.issueTokens(tokenRecord.user);
+        return this.issueTokens(tokenRecord.user, req);
     }
 
     async logout(refreshToken: string) {
@@ -160,7 +160,63 @@ export class AuthService {
         return { success: true };
     }
 
-    private async issueTokens(user: UserWithRolePermissions) {
+    async getSessions(userId: string) {
+        return this.prisma.refreshToken.findMany({
+            where: {
+                userId,
+                revokedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+            select: {
+                id: true,
+                ipAddress: true,
+                userAgent: true,
+                createdAt: true,
+                expiresAt: true,
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+    }
+
+    async revokeSession(userId: string, sessionId: string) {
+        await this.prisma.refreshToken.updateMany({
+            where: {
+                id: sessionId,
+                userId,
+                revokedAt: null,
+            },
+            data: { revokedAt: new Date() },
+        });
+
+        return { success: true };
+    }
+
+    async logoutAll(userId: string) {
+        await this.prisma.refreshToken.updateMany({
+            where: {
+                userId,
+                revokedAt: null,
+            },
+            data: { revokedAt: new Date() },
+        });
+
+        return { success: true };
+    }
+
+    async cleanupExpiredTokens() {
+        const result = await this.prisma.refreshToken.deleteMany({
+            where: {
+                OR: [
+                    { expiresAt: { lt: new Date() } },
+                    { revokedAt: { not: null } },
+                ],
+            },
+        });
+
+        return { deleted: result.count };
+    }
+
+    private async issueTokens(user: UserWithRolePermissions, req?: any) {
         const refreshToken = randomBytes(48).toString('hex');
         const refreshTokenHash = await bcrypt.hash(refreshToken, 10);
 
@@ -169,6 +225,8 @@ export class AuthService {
                 userId: user.id,
                 tokenHash: refreshTokenHash,
                 expiresAt: this.getRefreshTokenExpiry(),
+                ipAddress: req?.ip,
+                userAgent: req?.headers?.['user-agent'],
             },
         });
 

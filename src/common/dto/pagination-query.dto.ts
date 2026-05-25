@@ -1,5 +1,6 @@
+import { Locale } from '@prisma/client';
 import { Transform } from 'class-transformer';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 function toNumber(value: unknown) {
     if (value === undefined || value === null || value === '') return undefined;
@@ -23,6 +24,18 @@ export class PaginationQueryDto {
     @IsOptional()
     @IsString()
     search?: string;
+
+    @IsOptional()
+    @IsString()
+    tag?: string;
+
+    @IsOptional()
+    @IsString()
+    locationKey?: string;
+
+    @IsOptional()
+    @IsEnum(Locale)
+    locale?: Locale;
 }
 
 export function getPagination(query: PaginationQueryDto) {

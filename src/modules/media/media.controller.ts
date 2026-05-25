@@ -1,5 +1,4 @@
 import {
-    BadRequestException,
     Body,
     Controller,
     Delete,
@@ -22,6 +21,10 @@ import { CreateMediaDto } from './dto/create-media.dto';
 import { UpdateMediaDto } from './dto/update-media.dto';
 import { UploadMediaDto } from './dto/upload-media.dto';
 import { MediaService } from './media.service';
+import {
+    getMediaMaxFileSize,
+    validateMediaMimeType,
+} from './media-upload.config';
 
 @ApiTags('Media')
 @Controller()
@@ -53,25 +56,14 @@ export class MediaController {
     @Post('media/upload')
     @UseInterceptors(
         FileInterceptor('file', {
-            limits: { fileSize: 20 * 1024 * 1024 },
+            limits: { fileSize: getMediaMaxFileSize() },
             fileFilter: (_req, file, callback) => {
-                const allowedMimeTypes = [
-                    'image/jpeg',
-                    'image/png',
-                    'image/webp',
-                    'image/gif',
-                    'video/mp4',
-                    'application/pdf',
-                ];
-
-                if (!allowedMimeTypes.includes(file.mimetype)) {
-                    return callback(
-                        new BadRequestException('Unsupported media type'),
-                        false,
-                    );
+                try {
+                    validateMediaMimeType(file.mimetype);
+                    callback(null, true);
+                } catch (error: any) {
+                    callback(error, false);
                 }
-
-                callback(null, true);
             },
         }),
     )
@@ -89,6 +81,14 @@ export class MediaController {
     @Get('media')
     findAllAdmin(@Query() query: PaginationQueryDto) {
         return this.mediaService.findAllAdmin(query);
+    }
+
+    @ApiBearerAuth()
+    @ApiOperation({ summary: 'Remove local files for soft-deleted media' })
+    @Permissions(PERMISSIONS.MEDIA.MANAGE)
+    @Post('media/cleanup')
+    cleanupDeletedLocalFiles() {
+        return this.mediaService.cleanupDeletedLocalFiles();
     }
 
     @ApiBearerAuth()

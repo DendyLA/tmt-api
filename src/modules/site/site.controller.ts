@@ -1,5 +1,6 @@
 import { Controller, Get, Headers, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { LocaleQueryDto } from '../../common/dto/locale-query.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { SiteService } from './site.service';
 
@@ -24,14 +25,18 @@ export class SiteController {
     getHomeByDomain(
         @Query('domain') domain?: string,
         @Headers('host') host?: string,
+        @Query() query?: LocaleQueryDto,
     ) {
-        return this.siteService.getHomeByDomain(domain ?? host);
+        return this.siteService.getHomeByDomain(domain ?? host, query?.locale);
     }
 
     @Public()
     @ApiOperation({ summary: 'Get aggregate homepage payload by company slug' })
     @Get(':companySlug/home')
-    getHome(@Param('companySlug') companySlug: string) {
-        return this.siteService.getHome(companySlug);
+    getHome(
+        @Param('companySlug') companySlug: string,
+        @Query() query: LocaleQueryDto,
+    ) {
+        return this.siteService.getHome(companySlug, query.locale);
     }
 }

@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { LocaleQueryDto } from '../../common/dto/locale-query.dto';
 import { PERMISSIONS } from '../auth/constants/permissions.constants';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { Public } from '../auth/decorators/public.decorator';
@@ -18,8 +19,16 @@ export class AdsController {
     @Public()
     @ApiOperation({ summary: 'Get active ads for company site' })
     @Get('companies/:slug/ads')
-    findForCompanySite(@Param('slug') slug: string, @Query('locationKey') locationKey?: string) {
-        return this.adsService.findForCompanySite(slug, locationKey);
+    findForCompanySite(
+        @Param('slug') slug: string,
+        @Query('locationKey') locationKey?: string,
+        @Query() query?: LocaleQueryDto,
+    ) {
+        return this.adsService.findForCompanySite(
+            slug,
+            locationKey,
+            query?.locale,
+        );
     }
 
     @ApiBearerAuth()

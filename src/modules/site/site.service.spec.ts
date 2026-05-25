@@ -23,7 +23,12 @@ describe('SiteService', () => {
         prisma.adPlacement.findMany.mockResolvedValue([{ id: 'placement-1' }]);
 
         await expect(service.getHome('company')).resolves.toEqual({
-            company,
+            company: {
+                ...company,
+                projects: [],
+                serviceCategories: [],
+                services: [],
+            },
             latestPosts: [{ id: 'post-1' }],
             media: [{ id: 'media-1' }],
             adPlacements: [{ id: 'placement-1' }],

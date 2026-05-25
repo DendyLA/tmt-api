@@ -1,8 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { MediaType } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { mkdir, writeFile } from 'fs/promises';
-import { extname, join } from 'path';
+import { mkdir, unlink, writeFile } from 'fs/promises';
+import { join } from 'path';
+import {
+    MEDIA_EXTENSION_BY_MIME_TYPE,
+    validateMediaMimeType,
+} from '../media-upload.config';
 
 type UploadedFile = {
     buffer?: Buffer;
@@ -24,6 +28,7 @@ export class LocalMediaStorageService {
         if (!file?.buffer) {
             throw new BadRequestException('Media file is required');
         }
+        validateMediaMimeType(file.mimetype);
 
         const extension = this.resolveExtension(file);
         const filename = `${randomUUID()}${extension}`;
@@ -35,24 +40,26 @@ export class LocalMediaStorageService {
         return {
             url: `/uploads/media/${filename}`,
             type: this.resolveMediaType(file.mimetype),
-            filename,
+            fileName: filename,
+            originalName: file.originalname,
             size: file.size ?? file.buffer.length,
             mimeType: file.mimetype,
+            storage: 'local',
         };
     }
 
+    async remove(fileName: string) {
+        try {
+            await unlink(join(this.uploadRoot, fileName));
+            return true;
+        } catch (error: any) {
+            if (error?.code === 'ENOENT') return false;
+            throw error;
+        }
+    }
+
     private resolveExtension(file: UploadedFile) {
-        const fromName = extname(file.originalname ?? '').toLowerCase();
-        if (fromName && /^[a-z0-9.]+$/.test(fromName)) return fromName;
-
-        if (file.mimetype === 'image/jpeg') return '.jpg';
-        if (file.mimetype === 'image/png') return '.png';
-        if (file.mimetype === 'image/webp') return '.webp';
-        if (file.mimetype === 'image/gif') return '.gif';
-        if (file.mimetype === 'application/pdf') return '.pdf';
-        if (file.mimetype === 'video/mp4') return '.mp4';
-
-        return '.bin';
+        return MEDIA_EXTENSION_BY_MIME_TYPE[file.mimetype ?? ''] ?? '.bin';
     }
 
     private resolveMediaType(mimeType?: string) {
