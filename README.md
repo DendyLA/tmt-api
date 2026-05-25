@@ -36,6 +36,12 @@ CORS_ORIGINS=https://example.com
 REQUEST_BODY_LIMIT=1mb
 MEDIA_MAX_FILE_SIZE_MB=20
 MEDIA_ALLOWED_MIME_TYPES=image/jpeg,image/png,image/webp,image/gif,video/mp4,application/pdf
+SMTP_HOST=smtp.yandex.ru
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=mailbox@example.com
+SMTP_PASS=replace-with-yandex-app-password
+MAIL_FROM=mailbox@example.com
 APP_URL=https://example.com
 ```
 
@@ -104,6 +110,14 @@ TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/tmt_test npm run
 - `DELETE /companies/:companyId/staff/invites/:id`
 
 In production, the plain invite token is not returned in the API response. It is emitted through `company.staff.invite.created` for an email provider listener.
+
+## Email Verification
+
+- `POST /auth/verify-email`
+- `GET /auth/verify-email?token=...`
+- `POST /auth/resend-verification`
+
+Registration emits `auth.emailVerification.created`; the mail listener sends the activation link through SMTP when SMTP env variables are configured.
 
 ## Deployment Checklist
 

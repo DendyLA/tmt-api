@@ -24,6 +24,7 @@ import { AdsModule } from './modules/ads/ads.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AuditLogModule } from './modules/audit-log/audit-log.module';
 import { MaintenanceModule } from './modules/maintenance/maintenance.module';
+import { MailModule } from './modules/mail/mail.module';
 import { AuditLogMiddleware } from './common/middleware/audit-log/audit-log.middleware';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
@@ -51,6 +52,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
         AdminModule,
         AuditLogModule,
         MaintenanceModule,
+        MailModule,
         EventEmitterModule.forRoot(),
     ],
     controllers: [AppController],

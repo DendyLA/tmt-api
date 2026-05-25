@@ -10,6 +10,7 @@ jest.mock('bcrypt', () => ({
 describe('AuthService', () => {
     let prisma: any;
     let jwt: any;
+    let eventEmitter: { emit: jest.Mock };
     let service: AuthService;
 
     const role = {
@@ -37,6 +38,7 @@ describe('AuthService', () => {
             user: {
                 findUnique: jest.fn(),
                 create: jest.fn(),
+                update: jest.fn(),
             },
             role: {
                 findUnique: jest.fn(),
@@ -48,13 +50,21 @@ describe('AuthService', () => {
                 updateMany: jest.fn(),
                 deleteMany: jest.fn(),
             },
+            emailVerificationToken: {
+                create: jest.fn(),
+                findMany: jest.fn(),
+                update: jest.fn(),
+                updateMany: jest.fn(),
+            },
+            $transaction: jest.fn().mockResolvedValue([]),
         };
 
         jwt = {
             sign: jest.fn().mockReturnValue('access-token'),
         };
+        eventEmitter = { emit: jest.fn() };
 
-        service = new AuthService(prisma, jwt);
+        service = new AuthService(prisma, jwt, eventEmitter as any);
     });
 
     it('registers user and issues access plus refresh tokens', async () => {
@@ -72,6 +82,7 @@ describe('AuthService', () => {
         ).resolves.toEqual({
             access_token: 'access-token',
             refresh_token: expect.any(String),
+            emailVerified: false,
         });
 
         expect(prisma.user.create).toHaveBeenCalledWith({
@@ -94,6 +105,14 @@ describe('AuthService', () => {
             },
         });
         expect(prisma.refreshToken.create).toHaveBeenCalled();
+        expect(prisma.emailVerificationToken.create).toHaveBeenCalled();
+        expect(eventEmitter.emit).toHaveBeenCalledWith(
+            'auth.emailVerification.created',
+            expect.objectContaining({
+                user,
+                token: expect.any(String),
+            }),
+        );
     });
 
     it('rejects register when email is already used', async () => {
@@ -121,6 +140,7 @@ describe('AuthService', () => {
         ).resolves.toEqual({
             access_token: 'access-token',
             refresh_token: expect.any(String),
+            emailVerified: false,
         });
     });
 
@@ -151,6 +171,7 @@ describe('AuthService', () => {
         await expect(service.refresh('refresh-token')).resolves.toEqual({
             access_token: 'access-token',
             refresh_token: expect.any(String),
+            emailVerified: false,
         });
 
         expect(prisma.refreshToken.update).toHaveBeenCalledWith({
@@ -200,5 +221,30 @@ describe('AuthService', () => {
         await expect(service.cleanupExpiredTokens()).resolves.toEqual({
             deleted: 3,
         });
+    });
+
+    it('verifies email with active token', async () => {
+        prisma.emailVerificationToken.findMany.mockResolvedValue([
+            {
+                id: 'email-token-1',
+                userId: user.id,
+                tokenHash: 'hashed-token',
+                user: { ...user, emailVerifiedAt: null },
+            },
+        ]);
+        prisma.user.update.mockReturnValue({ operation: 'user.update' });
+        prisma.emailVerificationToken.update.mockReturnValue({
+            operation: 'emailVerificationToken.update',
+        });
+        (bcrypt.compare as jest.Mock).mockResolvedValueOnce(true);
+
+        await expect(service.verifyEmail('token')).resolves.toEqual({
+            success: true,
+        });
+
+        expect(prisma.$transaction).toHaveBeenCalledWith([
+            { operation: 'user.update' },
+            { operation: 'emailVerificationToken.update' },
+        ]);
     });
 });

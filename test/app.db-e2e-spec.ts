@@ -205,6 +205,7 @@ describeIfDb('App real database e2e', () => {
 
         await prisma.activityLog.deleteMany();
         await prisma.refreshToken.deleteMany();
+        await prisma.emailVerificationToken.deleteMany();
         await prisma.companyInvite.deleteMany();
         await prisma.postTranslation.deleteMany();
         await prisma.post.deleteMany();

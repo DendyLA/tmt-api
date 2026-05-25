@@ -12,27 +12,46 @@ datasource db {
 }
 
 model User {
-  id       String    @id @default(uuid())
-  name     String
-  email    String    @unique
-  password String
-  isBanned Boolean   @default(false)
-  bannedAt DateTime?
-  roleId   String?
-  role     Role?     @relation(fields: [roleId], references: [id])
+  id              String    @id @default(uuid())
+  name            String
+  email           String    @unique
+  password        String
+  isBanned        Boolean   @default(false)
+  bannedAt        DateTime?
+  emailVerifiedAt DateTime?
+  roleId          String?
+  role            Role?     @relation(fields: [roleId], references: [id])
 
   createdAt DateTime @default(now())
 
-  vacancies          Vacancy[]
-  companyMemberships CompanyMember[]
-  posts              Post[]
-  media              Media[]
-  contentVersions    ContentVersion[]
-  refreshTokens      RefreshToken[]
+  vacancies               Vacancy[]
+  companyMemberships      CompanyMember[]
+  posts                   Post[]
+  media                   Media[]
+  contentVersions         ContentVersion[]
+  refreshTokens           RefreshToken[]
+  emailVerificationTokens EmailVerificationToken[]
 
   @@index([roleId])
   @@index([isBanned])
   @@index([createdAt])
+}
+
+model EmailVerificationToken {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([usedAt])
 }
 
 model Role {

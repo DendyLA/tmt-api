@@ -3,6 +3,7 @@ import {
     UnauthorizedException,
     BadRequestException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
@@ -13,6 +14,7 @@ import { randomBytes } from 'crypto';
 type UserWithRolePermissions = {
     id: string;
     email: string;
+    emailVerifiedAt?: Date | null;
     role: {
         name: string;
         permissions: {
@@ -28,6 +30,7 @@ export class AuthService {
     constructor(
         private prisma: PrismaService,
         private jwt: JwtService,
+        private eventEmitter: EventEmitter2,
     ) {}
 
     async register(dto: RegisterDto, req?: any) {
@@ -69,6 +72,8 @@ export class AuthService {
             },
         });
 
+        await this.createEmailVerification(user, req);
+
         return this.issueTokens(user, req);
     }
 
@@ -94,6 +99,51 @@ export class AuthService {
         if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
         return this.issueTokens(user, req);
+    }
+
+    async verifyEmail(token: string) {
+        const activeTokens = await this.prisma.emailVerificationToken.findMany({
+            where: {
+                usedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+            include: { user: true },
+        });
+
+        const tokenRecord = await this.findMatchingRefreshToken(
+            token,
+            activeTokens,
+        );
+
+        if (!tokenRecord) {
+            throw new BadRequestException('Invalid or expired verification token');
+        }
+
+        await this.prisma.$transaction([
+            this.prisma.user.update({
+                where: { id: tokenRecord.userId },
+                data: { emailVerifiedAt: tokenRecord.user.emailVerifiedAt ?? new Date() },
+            }),
+            this.prisma.emailVerificationToken.update({
+                where: { id: tokenRecord.id },
+                data: { usedAt: new Date() },
+            }),
+        ]);
+
+        return { success: true };
+    }
+
+    async resendEmailVerification(userId: string, req?: any) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, email: true, emailVerifiedAt: true },
+        });
+
+        if (!user) throw new UnauthorizedException();
+        if (user.emailVerifiedAt) return { success: true, alreadyVerified: true };
+
+        await this.createEmailVerification(user, req);
+        return { success: true };
     }
 
     async refresh(refreshToken: string, req?: any) {
@@ -233,6 +283,7 @@ export class AuthService {
         return {
             access_token: this.signAccessToken(user),
             refresh_token: refreshToken,
+            emailVerified: Boolean(user.emailVerifiedAt),
         };
     }
 
@@ -243,14 +294,52 @@ export class AuthService {
         return this.jwt.sign({
             sub: user.id,
             email: user.email,
+            emailVerified: Boolean(user.emailVerifiedAt),
             role: user.role?.name ?? null,
             permissions,
+        });
+    }
+
+    private async createEmailVerification(
+        user: { id: string; email: string },
+        req?: any,
+    ) {
+        await this.prisma.emailVerificationToken.updateMany({
+            where: {
+                userId: user.id,
+                usedAt: null,
+                expiresAt: { gt: new Date() },
+            },
+            data: { usedAt: new Date() },
+        });
+
+        const token = randomBytes(32).toString('hex');
+        const tokenHash = await bcrypt.hash(token, 10);
+
+        await this.prisma.emailVerificationToken.create({
+            data: {
+                userId: user.id,
+                tokenHash,
+                expiresAt: this.getEmailVerificationExpiry(),
+            },
+        });
+
+        this.eventEmitter.emit('auth.emailVerification.created', {
+            user,
+            token,
+            req,
         });
     }
 
     private getRefreshTokenExpiry() {
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
+        return expiresAt;
+    }
+
+    private getEmailVerificationExpiry() {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 1);
         return expiresAt;
     }
 

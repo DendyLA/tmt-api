@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Post, Req } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    Query,
+    Req,
+} from '@nestjs/common';
 import { Public } from './decorators/public.decorator';
 import { AuthService } from './auth.service';
 
@@ -6,6 +15,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -33,6 +43,23 @@ export class AuthController {
     @Post('logout')
     logout(@Body() dto: RefreshTokenDto) {
         return this.auth.logout(dto.refreshToken);
+    }
+
+    @Public()
+    @Post('verify-email')
+    verifyEmail(@Body() dto: VerifyEmailDto) {
+        return this.auth.verifyEmail(dto.token);
+    }
+
+    @Public()
+    @Get('verify-email')
+    verifyEmailByLink(@Query('token') token: string) {
+        return this.auth.verifyEmail(token);
+    }
+
+    @Post('resend-verification')
+    resendVerification(@Req() req: any) {
+        return this.auth.resendEmailVerification(req.user.sub, req);
     }
 
     @Get('sessions')
