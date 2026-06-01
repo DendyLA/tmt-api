@@ -31,7 +31,8 @@ describe('UsersController', () => {
         await expect(controller.findAll()).resolves.toEqual([user]);
         await expect(controller.findOne(user.id)).resolves.toEqual(user);
         await expect(
-            controller.getMe({ user: { userId: user.id } }),
+            controller.getMe({ user: { sub: user.id } }),
         ).resolves.toEqual(user);
+        expect(usersService.getMe).toHaveBeenCalledWith(user.id);
     });
 });

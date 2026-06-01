@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt/jwt.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { Permissions } from '../auth/decorators/permissions.decorator';
 import { PERMISSIONS } from '../auth/constants/permissions.constants';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
 @ApiBearerAuth()
@@ -32,6 +32,10 @@ export class VacanciesController {
 
     // ================= PUBLIC =================
     @Public()
+    @ApiQuery({ name: 'tag', required: false, example: 'backend' })
+    @ApiQuery({ name: 'page', required: false, example: 1 })
+    @ApiQuery({ name: 'limit', required: false, example: 20 })
+    @ApiQuery({ name: 'search', required: false, example: 'backend' })
     @Get()
     findAll(
         @Req() req,

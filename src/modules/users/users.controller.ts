@@ -1,4 +1,11 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+    Body,
+    Controller,
+    Get,
+    Param,
+    Post,
+    UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
@@ -20,11 +27,16 @@ export class UsersController {
         return this.usersService.findAll();
     }
 
+    @ApiBearerAuth()
     @Get('me')
     getMe(@Req() req) {
-        return this.usersService.getMe(req.user.userId);
+        const userId = req.user?.sub ?? req.user?.id ?? req.user?.userId;
+        if (!userId) throw new UnauthorizedException();
+
+        return this.usersService.getMe(userId);
     }
 
+	@ApiBearerAuth()
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.usersService.findOne(id);
