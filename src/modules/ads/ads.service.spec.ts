@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AdType } from '@prisma/client';
 import { AdsService } from './ads.service';
 
@@ -11,7 +11,12 @@ describe('AdsService', () => {
     beforeEach(() => {
         prisma = {
             company: { findFirst: jest.fn(), findUnique: jest.fn() },
-            adPlacement: { findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+            adPlacement: {
+                findMany: jest.fn(),
+                create: jest.fn(),
+                update: jest.fn(),
+                findUnique: jest.fn(),
+            },
             adSpace: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
             ad: { create: jest.fn(), findUnique: jest.fn(), update: jest.fn() },
         };
@@ -50,5 +55,16 @@ describe('AdsService', () => {
                 type: AdType.IMAGE,
             }),
         ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('returns not found for missing ad placement tracking', async () => {
+        prisma.adPlacement.findUnique.mockResolvedValue(null);
+
+        await expect(service.trackImpression('missing')).rejects.toBeInstanceOf(
+            NotFoundException,
+        );
+        await expect(service.trackClick('missing')).rejects.toBeInstanceOf(
+            NotFoundException,
+        );
     });
 });

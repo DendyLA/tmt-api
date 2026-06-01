@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma/prisma.service';
 import { VacancyStatus } from '@prisma/client';
 import { AuditLogService } from '../../audit-log/audit-log.service';
@@ -11,9 +11,11 @@ export class VacancyModerationService {
     ) {}
 
     async approve(id: string, user: any, req?: any) {
+        await this.ensureVacancyExists(id);
+
         const updated = await this.prisma.vacancy.update({
             where: { id },
-            data: { status: 'APPROVED' },
+            data: { status: VacancyStatus.APPROVED },
         });
 
         await this.audit.log({
@@ -29,9 +31,11 @@ export class VacancyModerationService {
     }
 
     async reject(id: string, user: any, req?: any) {
+        await this.ensureVacancyExists(id);
+
         const updated = await this.prisma.vacancy.update({
             where: { id },
-            data: { status: 'REJECTED' },
+            data: { status: VacancyStatus.REJECTED },
         });
 
         await this.audit.log({
@@ -48,6 +52,8 @@ export class VacancyModerationService {
     }
 
     async archive(id: string, user: any, req?: any) {
+        await this.ensureVacancyExists(id);
+
         const updated = await this.prisma.vacancy.update({
             where: { id },
             data: {
@@ -65,5 +71,14 @@ export class VacancyModerationService {
         });
 
         return updated;
+    }
+
+    private async ensureVacancyExists(id: string) {
+        const vacancy = await this.prisma.vacancy.findUnique({
+            where: { id },
+            select: { id: true },
+        });
+
+        if (!vacancy) throw new NotFoundException('Vacancy not found');
     }
 }

@@ -129,6 +129,8 @@ export class AdsService {
     }
 
     async trackImpression(id: string) {
+        await this.findActivePlacement(id);
+
         return this.prisma.adPlacement.update({
             where: { id },
             data: { impressions: { increment: 1 } },
@@ -136,6 +138,8 @@ export class AdsService {
     }
 
     async trackClick(id: string) {
+        await this.findActivePlacement(id);
+
         return this.prisma.adPlacement.update({
             where: { id },
             data: { clicks: { increment: 1 } },
@@ -167,6 +171,15 @@ export class AdsService {
         const space = await this.prisma.adSpace.findUnique({ where: { id } });
         if (!space || space.deletedAt) throw new NotFoundException('Ad space not found');
         return space;
+    }
+
+    private async findActivePlacement(id: string) {
+        const placement = await this.prisma.adPlacement.findUnique({
+            where: { id },
+            select: { id: true },
+        });
+        if (!placement) throw new NotFoundException('Ad placement not found');
+        return placement;
     }
 
     private async upsertTranslations(

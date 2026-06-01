@@ -20,4 +20,8 @@ export class UpdateVacancyDto {
     @IsOptional()
     @IsString()
     contactEmail?: string;
+
+    @IsOptional()
+    @IsString()
+    salary?: string;
 }
